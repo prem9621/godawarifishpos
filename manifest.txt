@@ -1,0 +1,2 @@
+﻿# Fix app name in AndroidManifest
+(Get-Content "android\app\src\main\AndroidManifest.xml") -replace 'Godawari Fish POS', 'Godawari Fish Ledger' | Set-Content "android\app\src\main\AndroidManifest.xml"

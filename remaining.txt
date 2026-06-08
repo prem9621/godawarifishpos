@@ -1,0 +1,1480 @@
+﻿import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../database/database_helper.dart';
+import '../../providers/settings_provider.dart';
+import '../../core/theme/app_theme.dart';
+import '../home/main_shell_screen.dart';
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
+  // â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  List<Map<String, dynamic>> _stores = [];
+  List<Map<String, dynamic>> _users  = [];
+
+  Map<String, dynamic>? _selectedStore;
+  Map<String, dynamic>? _selectedUser;
+
+  String  _pin       = '';
+  bool    _loading   = true;
+  bool    _pinError  = false;
+  String  _errorMsg  = '';
+
+  late AnimationController _shakeCtrl;
+  late Animation<double>   _shakeAnim;
+
+  // â”€â”€ Init â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  @override
+  void initState() {
+    super.initState();
+    _shakeCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _shakeAnim = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _shakeCtrl, curve: Curves.elasticIn),
+    );
+    _loadData();
+  }
+
+  @override
+  void dispose() {
+    _shakeCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _loading = true);
+    try {
+      final db     = DatabaseHelper.instance;
+      final stores = await db.getStores();
+      setState(() {
+        _stores        = stores;
+        _selectedStore = stores.isNotEmpty ? stores.first : null;
+        _loading       = false;
+      });
+      if (_selectedStore != null) {
+        await _loadUsers(_selectedStore!['id'] as int);
+      }
+    } catch (e) {
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _loadUsers(int storeId) async {
+    final users = await DatabaseHelper.instance.getUsers(storeId: storeId);
+    setState(() {
+      _users        = users;
+      _selectedUser = users.isNotEmpty ? users.first : null;
+      _pin          = '';
+      _pinError     = false;
+    });
+  }
+
+  // â”€â”€ PIN logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  void _onKey(String key) {
+    if (_pin.length >= 4) return;
+    setState(() {
+      _pin     += key;
+      _pinError = false;
+      _errorMsg = '';
+    });
+    if (_pin.length == 4) _verifyPin();
+  }
+
+  void _onDelete() {
+    if (_pin.isEmpty) return;
+    setState(() {
+      _pin      = _pin.substring(0, _pin.length - 1);
+      _pinError = false;
+      _errorMsg = '';
+    });
+  }
+
+  Future<void> _verifyPin() async {
+    if (_selectedStore == null) return;
+
+    final storeId = _selectedStore!['id'] as int;
+    final user    = await DatabaseHelper.instance.loginWithPin(
+      _pin,
+      storeId: storeId,
+    );
+
+    if (user == null) {
+      // Wrong PIN â€” shake
+      await _shakeCtrl.forward(from: 0);
+      setState(() {
+        _pin      = '';
+        _pinError = true;
+        _errorMsg = 'Wrong PIN. Try again.';
+      });
+      return;
+    }
+
+    // âœ… Login success
+    if (!mounted) return;
+    final settings = context.read<SettingsProvider>();
+    await settings.loginUser(
+      userId  : user['id']   as int,
+      userName: user['name'] as String,
+      userRole: user['role'] as String,
+    );
+    await settings.switchStore(
+      storeId  : storeId,
+      storeName: _selectedStore!['name'] as String,
+    );
+
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const MainShellScreen()),
+    );
+  }
+
+  // â”€â”€ Build â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF0D47A1),
+        body: Center(
+          child: CircularProgressIndicator(color: Colors.white),
+        ),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF0D47A1),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            const SizedBox(height: 32),
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.set_meal_rounded,
+                color: AppTheme.primaryBlue,
+                size: 40,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Godawari Fish Ledger',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Enter your PIN to continue',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 13,
+              ),
+            ),
+
+            const SizedBox(height: 28),
+
+            // â”€â”€ Store + User selectors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Row(
+                children: [
+                  // Store selector
+                  Expanded(
+                    child: _SelectorCard(
+                      icon : Icons.store_rounded,
+                      label: 'Store',
+                      value: _selectedStore?['name'] as String? ?? 'No Store',
+                      onTap: _stores.length > 1 ? _pickStore : null,
+                      showArrow: _stores.length > 1,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // User selector
+                  Expanded(
+                    child: _SelectorCard(
+                      icon : Icons.person_rounded,
+                      label: 'User',
+                      value: _selectedUser?['name'] as String? ?? 'No User',
+                      onTap: _users.length > 1 ? _pickUser : null,
+                      showArrow: _users.length > 1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            // â”€â”€ PIN dots â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            AnimatedBuilder(
+              animation: _shakeAnim,
+              builder: (ctx, child) {
+                final offset = (_shakeAnim.value * 10 *
+                    (1 - _shakeAnim.value) *
+                    ((_shakeAnim.value * 4).round() % 2 == 0 ? 1 : -1));
+                return Transform.translate(
+                  offset: Offset(offset, 0),
+                  child: child,
+                );
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(4, (i) {
+                  final filled = i < _pin.length;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    margin: const EdgeInsets.symmetric(horizontal: 10),
+                    width  : 18,
+                    height : 18,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _pinError
+                          ? Colors.red.shade300
+                          : filled
+                              ? Colors.white
+                              : Colors.white.withValues(alpha: 0.3),
+                      border: Border.all(
+                        color: _pinError
+                            ? Colors.red.shade300
+                            : Colors.white.withValues(alpha: 0.6),
+                        width: 2,
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+
+            if (_pinError) ...[
+              const SizedBox(height: 10),
+              Text(
+                _errorMsg,
+                style: TextStyle(
+                  color: Colors.red.shade300,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+
+            const Spacer(),
+
+            // â”€â”€ Numpad â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            Container(
+              margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Column(
+                children: [
+                  _NumRow(keys: const ['1', '2', '3'], onKey: _onKey),
+                  const SizedBox(height: 12),
+                  _NumRow(keys: const ['4', '5', '6'], onKey: _onKey),
+                  const SizedBox(height: 12),
+                  _NumRow(keys: const ['7', '8', '9'], onKey: _onKey),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Empty slot
+                      const SizedBox(width: 72, height: 72),
+                      // 0
+                      _NumKey(label: '0', onTap: () => _onKey('0')),
+                      // Delete
+                      _NumKey(
+                        icon : Icons.backspace_outlined,
+                        onTap: _onDelete,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // â”€â”€ Pickers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Future<void> _pickStore() async {
+    final chosen = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _PickerSheet(
+        title: 'Select Store',
+        items: _stores,
+        labelKey: 'name',
+        icon: Icons.store_rounded,
+      ),
+    );
+    if (chosen != null && mounted) {
+      setState(() {
+        _selectedStore = chosen;
+        _pin           = '';
+        _pinError      = false;
+      });
+      await _loadUsers(chosen['id'] as int);
+    }
+  }
+
+  Future<void> _pickUser() async {
+    final chosen = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _PickerSheet(
+        title: 'Select User',
+        items: _users,
+        labelKey: 'name',
+        icon: Icons.person_rounded,
+        subtitleKey: 'role',
+      ),
+    );
+    if (chosen != null && mounted) {
+      setState(() {
+        _selectedUser = chosen;
+        _pin          = '';
+        _pinError     = false;
+      });
+    }
+  }
+}
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  SELECTOR CARD
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+class _SelectorCard extends StatelessWidget {
+  final IconData icon;
+  final String   label;
+  final String   value;
+  final VoidCallback? onTap;
+  final bool     showArrow;
+
+  const _SelectorCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.onTap,
+    this.showArrow = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontSize: 10,
+                    ),
+                  ),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (showArrow)
+              Icon(
+                Icons.expand_more_rounded,
+                color: Colors.white.withValues(alpha: 0.7),
+                size: 18,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  NUMPAD ROW
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+class _NumRow extends StatelessWidget {
+  final List<String>       keys;
+  final ValueChanged<String> onKey;
+
+  const _NumRow({required this.keys, required this.onKey});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: keys
+          .map((k) => _NumKey(label: k, onTap: () => onKey(k)))
+          .toList(),
+    );
+  }
+}
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  NUMPAD KEY
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+class _NumKey extends StatelessWidget {
+  final String?    label;
+  final IconData?  icon;
+  final VoidCallback onTap;
+
+  const _NumKey({this.label, this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 80),
+        width : 72,
+        height: 72,
+        decoration: BoxDecoration(
+          color : Colors.white.withValues(alpha: 0.15),
+          shape : BoxShape.circle,
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Center(
+          child: icon != null
+              ? Icon(icon, color: Colors.white, size: 24)
+              : Text(
+                  label!,
+                  style: const TextStyle(
+                    color     : Colors.white,
+                    fontSize  : 26,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  PICKER BOTTOM SHEET
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+class _PickerSheet extends StatelessWidget {
+  final String                      title;
+  final List<Map<String, dynamic>>  items;
+  final String                      labelKey;
+  final String?                     subtitleKey;
+  final IconData                    icon;
+
+  const _PickerSheet({
+    required this.title,
+    required this.items,
+    required this.labelKey,
+    required this.icon,
+    this.subtitleKey,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width : 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize  : 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Divider(),
+          ...items.map((item) {
+            final label    = item[labelKey]?.toString() ?? '';
+            final subtitle = subtitleKey != null
+                ? (item[subtitleKey]?.toString() ?? '')
+                : null;
+            return ListTile(
+              leading: Container(
+                width : 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: AppTheme.primaryBlue, size: 20),
+              ),
+              title: Text(
+                label,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize  : 14,
+                ),
+              ),
+              subtitle: subtitle != null
+                  ? Text(
+                      subtitle[0].toUpperCase() + subtitle.substring(1),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color   : subtitle == 'admin'
+                            ? Colors.orange.shade700
+                            : Colors.grey.shade500,
+                      ),
+                    )
+                  : null,
+              onTap: () => Navigator.pop(context, item),
+            );
+          }),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../core/constants/app_constants.dart';
+
+class SettingsProvider extends ChangeNotifier {
+  ThemeMode _themeMode = ThemeMode.light;
+  int _colorThemeIndex = 0;
+
+  String _shopName    = AppConstants.shopName;
+  String _shopAddress = AppConstants.shopAddress;
+  String _shopPhone   = AppConstants.shopPhone;
+  String _shopEmail   = AppConstants.shopEmail;
+
+  String _invoicePrefix  = AppConstants.defaultPrefix;
+  int    _lastInvoiceNo  = 4207;
+  String _purchasePrefix = AppConstants.defaultPurchasePrefix;
+  int    _lastPurchaseNo = 1000;
+  String _returnPrefix   = AppConstants.defaultReturnPrefix;
+  int    _lastReturnNo   = 1000;
+
+  int    _receiptTheme = 5;
+  bool   _taxEnabled   = false;
+  double _taxPercent   = 0;
+  bool   _gstEnabled   = false;
+  String _gstNo        = '';
+  String _upiId        = AppConstants.defaultUpiId;
+  bool   _showPaymentQr    = false;
+  bool   _discountEnabled  = true;
+  String _currencySymbol   = AppConstants.defaultCurrency;
+  int    _dueDateDays      = AppConstants.defaultDueDays;
+  String _bluetoothPrinter = '';
+  int    _thermalPaperWidthMm = 80;
+  double _receiptFontSize     = 1.0;
+  bool   _printLogo           = true;
+  bool   _showFooterMessage   = true;
+  String _footerMessage       = 'Thank You Visit Again';
+
+  // INVOICE PRINT SETTINGS
+  bool _nativeLanguagePrinting = true;
+  int  _extraLinesAtPrintEnd   = 0;
+  int  _numberOfCopies         = 1;
+  bool _autoCutPaper           = false;
+  bool _openCashDrawer         = false;
+  bool _printShopName          = true;
+  bool _printShopAddress       = true;
+  bool _printShopEmail         = true;
+  bool _printShopPhone         = true;
+  bool _printGstin             = true;
+  bool _printBillOfSupply      = false;
+  bool _printSNo               = true;
+  bool _printHsn               = true;
+  bool _printUnit              = true;
+  bool _printMrp               = true;
+  bool _printDescription       = true;
+  bool _printTotalQuantity     = true;
+  bool _printAmountWithDecimal = true;
+  bool _printReceivedAmount    = true;
+  bool _printBalanceAmount     = true;
+
+  // â”€â”€ MULTI-STORE & MULTI-USER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  int    _currentStoreId   = 1;
+  String _currentStoreName = '';
+  int    _currentUserId    = 0;       // 0 = not logged in
+  String _currentUserName  = '';
+  String _currentUserRole  = '';      // 'admin' | 'staff' | ''
+
+  // â”€â”€ GETTERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  ThemeMode get themeMode        => _themeMode;
+  int       get colorThemeIndex  => _colorThemeIndex;
+  String    get shopName         => _shopName;
+  String    get shopAddress      => _shopAddress;
+  String    get shopPhone        => _shopPhone;
+  String    get shopEmail        => _shopEmail;
+  String    get invoicePrefix    => _invoicePrefix;
+  int       get lastInvoiceNo    => _lastInvoiceNo;
+  String    get purchasePrefix   => _purchasePrefix;
+  int       get lastPurchaseNo   => _lastPurchaseNo;
+  String    get returnPrefix     => _returnPrefix;
+  int       get lastReturnNo     => _lastReturnNo;
+  int       get receiptTheme     => _receiptTheme;
+  bool      get taxEnabled       => _taxEnabled;
+  double    get taxPercent       => _taxPercent;
+  bool      get gstEnabled       => _gstEnabled;
+  String    get gstNo            => _gstNo;
+  String    get upiId            => _upiId;
+  bool      get showPaymentQr    => _showPaymentQr;
+  bool      get discountEnabled  => _discountEnabled;
+  String    get currencySymbol   => _currencySymbol;
+  int       get dueDateDays      => _dueDateDays;
+  String    get bluetoothPrinter => _bluetoothPrinter;
+  int       get thermalPaperWidthMm   => _thermalPaperWidthMm;
+  double    get receiptFontSize       => _receiptFontSize;
+  bool      get printLogo             => _printLogo;
+  bool      get showFooterMessage     => _showFooterMessage;
+  String    get footerMessage         => _footerMessage;
+  bool      get nativeLanguagePrinting => _nativeLanguagePrinting;
+  int       get extraLinesAtPrintEnd   => _extraLinesAtPrintEnd;
+  int       get numberOfCopies         => _numberOfCopies;
+  bool      get autoCutPaper           => _autoCutPaper;
+  bool      get openCashDrawer         => _openCashDrawer;
+  bool      get printShopName          => _printShopName;
+  bool      get printShopAddress       => _printShopAddress;
+  bool      get printShopEmail         => _printShopEmail;
+  bool      get printShopPhone         => _printShopPhone;
+  bool      get printGstin             => _printGstin;
+  bool      get printBillOfSupply      => _printBillOfSupply;
+  bool      get printSNo               => _printSNo;
+  bool      get printHsn               => _printHsn;
+  bool      get printUnit              => _printUnit;
+  bool      get printMrp               => _printMrp;
+  bool      get printDescription       => _printDescription;
+  bool      get printTotalQuantity     => _printTotalQuantity;
+  bool      get printAmountWithDecimal => _printAmountWithDecimal;
+  bool      get printReceivedAmount    => _printReceivedAmount;
+  bool      get printBalanceAmount     => _printBalanceAmount;
+
+  // Multi-store / multi-user getters
+  int    get currentStoreId   => _currentStoreId;
+  String get currentStoreName => _currentStoreName;
+  int    get currentUserId    => _currentUserId;
+  String get currentUserName  => _currentUserName;
+  String get currentUserRole  => _currentUserRole;
+  bool   get isLoggedIn       => _currentUserId > 0;
+  bool   get isAdmin          => _currentUserRole == 'admin';
+
+  // â”€â”€ CONSTRUCTOR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  SettingsProvider() {
+    loadSettings();
+  }
+
+  // â”€â”€ LOAD ALL SETTINGS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Future<void> loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    _themeMode       = ThemeMode.values[prefs.getInt(AppConstants.keyThemeMode) ?? 0];
+    _colorThemeIndex = prefs.getInt(AppConstants.keyColorTheme) ?? 0;
+
+    _shopName    = prefs.getString(AppConstants.keyShopName)    ?? AppConstants.shopName;
+    _shopAddress = prefs.getString(AppConstants.keyShopAddress) ?? AppConstants.shopAddress;
+    _shopPhone   = prefs.getString(AppConstants.keyShopPhone)   ?? AppConstants.shopPhone;
+    _shopEmail   = prefs.getString(AppConstants.keyShopEmail)   ?? AppConstants.shopEmail;
+
+    _invoicePrefix  = prefs.getString(AppConstants.keyInvoicePrefix)  ?? AppConstants.defaultPrefix;
+    _lastInvoiceNo  = prefs.getInt(AppConstants.keyLastInvoiceNo)     ?? 4207;
+    _purchasePrefix = prefs.getString(AppConstants.keyPurchasePrefix) ?? AppConstants.defaultPurchasePrefix;
+    _lastPurchaseNo = prefs.getInt(AppConstants.keyLastPurchaseNo)    ?? 1000;
+    _returnPrefix   = prefs.getString(AppConstants.keyReturnPrefix)   ?? AppConstants.defaultReturnPrefix;
+    _lastReturnNo   = prefs.getInt(AppConstants.keyLastReturnNo)      ?? 1000;
+
+    _receiptTheme    = prefs.getInt(AppConstants.keyReceiptTheme) ?? 5;
+    _taxEnabled      = prefs.getBool(AppConstants.keyTaxEnabled)  ?? false;
+    _taxPercent      = prefs.getDouble(AppConstants.keyTaxPercent) ?? 0;
+    _gstEnabled      = prefs.getBool(AppConstants.keyGstEnabled)  ?? false;
+    _gstNo           = prefs.getString(AppConstants.keyGstNo)     ?? '';
+    _upiId           = prefs.getString(AppConstants.keyUpiId)     ?? AppConstants.defaultUpiId;
+    _showPaymentQr   = prefs.getBool(AppConstants.keyShowPaymentQr)   ?? false;
+    _discountEnabled = prefs.getBool(AppConstants.keyDiscountEnabled) ?? true;
+    _currencySymbol  = prefs.getString(AppConstants.keyCurrencySymbol) ?? AppConstants.defaultCurrency;
+    _dueDateDays     = prefs.getInt(AppConstants.keyDueDateDays)       ?? AppConstants.defaultDueDays;
+    _bluetoothPrinter     = prefs.getString(AppConstants.keyBluetoothPrinter) ?? '';
+    _thermalPaperWidthMm  = prefs.getInt(AppConstants.keyThermalPaperMm) ?? 80;
+    if (_thermalPaperWidthMm != 58 && _thermalPaperWidthMm != 80) {
+      _thermalPaperWidthMm = 80;
+    }
+
+    _receiptFontSize   = prefs.getDouble('receipt_font_size')   ?? 1.0;
+    _printLogo         = prefs.getBool('print_logo')            ?? true;
+    _showFooterMessage = prefs.getBool('show_footer_message')   ?? true;
+    _footerMessage     = prefs.getString('footer_message')      ?? 'Thank You Visit Again';
+
+    _nativeLanguagePrinting = prefs.getBool('native_language_printing') ?? true;
+    _extraLinesAtPrintEnd   = prefs.getInt('extra_lines_at_print_end')  ?? 0;
+    _numberOfCopies         = prefs.getInt('number_of_copies')          ?? 1;
+    _autoCutPaper           = prefs.getBool('auto_cut_paper')           ?? false;
+    _openCashDrawer         = prefs.getBool('open_cash_drawer')         ?? false;
+    _printShopName          = prefs.getBool('print_shop_name')          ?? true;
+    _printShopAddress       = prefs.getBool('print_shop_address')       ?? true;
+    _printShopEmail         = prefs.getBool('print_shop_email')         ?? true;
+    _printShopPhone         = prefs.getBool('print_shop_phone')         ?? true;
+    _printGstin             = prefs.getBool('print_gstin')              ?? true;
+    _printBillOfSupply      = prefs.getBool('print_bill_of_supply')     ?? false;
+    _printSNo               = prefs.getBool('print_s_no')               ?? true;
+    _printHsn               = prefs.getBool('print_hsn')                ?? true;
+    _printUnit              = prefs.getBool('print_unit')               ?? true;
+    _printMrp               = prefs.getBool('print_mrp')                ?? true;
+    _printDescription       = prefs.getBool('print_description')        ?? true;
+    _printTotalQuantity     = prefs.getBool('print_total_quantity')     ?? true;
+    _printAmountWithDecimal = prefs.getBool('print_amount_with_decimal') ?? true;
+    _printReceivedAmount    = prefs.getBool('print_received_amount')    ?? true;
+    _printBalanceAmount     = prefs.getBool('print_balance_amount')     ?? true;
+
+    // Multi-store / multi-user â€” restore last session
+    _currentStoreId   = prefs.getInt('current_store_id')     ?? 1;
+    _currentStoreName = prefs.getString('current_store_name') ?? '';
+    _currentUserId    = prefs.getInt('current_user_id')      ?? 0;
+    _currentUserName  = prefs.getString('current_user_name') ?? '';
+    _currentUserRole  = prefs.getString('current_user_role') ?? '';
+
+    notifyListeners();
+  }
+
+  // â”€â”€ MULTI-STORE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  /// Call after user picks a store (e.g. from store-switcher dialog)
+  Future<void> switchStore({
+    required int    storeId,
+    required String storeName,
+  }) async {
+    _currentStoreId   = storeId;
+    _currentStoreName = storeName;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('current_store_id', storeId);
+    await prefs.setString('current_store_name', storeName);
+    notifyListeners();
+  }
+
+  // â”€â”€ MULTI-USER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  /// Call after successful PIN login
+  Future<void> loginUser({
+    required int    userId,
+    required String userName,
+    required String userRole,
+  }) async {
+    _currentUserId   = userId;
+    _currentUserName = userName;
+    _currentUserRole = userRole;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('current_user_id', userId);
+    await prefs.setString('current_user_name', userName);
+    await prefs.setString('current_user_role', userRole);
+    notifyListeners();
+  }
+
+  /// Call on logout
+  Future<void> logoutUser() async {
+    _currentUserId   = 0;
+    _currentUserName = '';
+    _currentUserRole = '';
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('current_user_id', 0);
+    await prefs.setString('current_user_name', '');
+    await prefs.setString('current_user_role', '');
+    notifyListeners();
+  }
+
+  // â”€â”€ THEME â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Future<void> setThemeMode(ThemeMode mode) async {
+    _themeMode = mode;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(AppConstants.keyThemeMode, mode.index);
+    notifyListeners();
+  }
+
+  Future<void> setColorTheme(int index) async {
+    _colorThemeIndex = index;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(AppConstants.keyColorTheme, index);
+    notifyListeners();
+  }
+
+  // â”€â”€ RECEIPT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Future<void> setReceiptTheme(int theme) async {
+    _receiptTheme = theme;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(AppConstants.keyReceiptTheme, theme);
+    notifyListeners();
+  }
+
+  Future<void> setReceiptFontSize(double value) async {
+    _receiptFontSize = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('receipt_font_size', value);
+    notifyListeners();
+  }
+
+  Future<void> setPrintLogo(bool value) async {
+    _printLogo = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('print_logo', value);
+    notifyListeners();
+  }
+
+  Future<void> setShowFooterMessage(bool value) async {
+    _showFooterMessage = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('show_footer_message', value);
+    notifyListeners();
+  }
+
+  Future<void> setFooterMessage(String value) async {
+    _footerMessage = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('footer_message', value);
+    notifyListeners();
+  }
+
+  // â”€â”€ SHOP INFO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Future<void> updateShopInfo({
+    String? name,
+    String? address,
+    String? phone,
+    String? email,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (name != null) {
+      _shopName = name;
+      await prefs.setString(AppConstants.keyShopName, name);
+    }
+    if (address != null) {
+      _shopAddress = address;
+      await prefs.setString(AppConstants.keyShopAddress, address);
+    }
+    if (phone != null) {
+      _shopPhone = phone;
+      await prefs.setString(AppConstants.keyShopPhone, phone);
+    }
+    if (email != null) {
+      _shopEmail = email;
+      await prefs.setString(AppConstants.keyShopEmail, email);
+    }
+    notifyListeners();
+  }
+
+  // â”€â”€ INVOICE SETTINGS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Future<void> updateInvoiceSettings({
+    String? prefix,
+    int?    dueDays,
+    String? currency,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefix != null) {
+      _invoicePrefix = prefix;
+      await prefs.setString(AppConstants.keyInvoicePrefix, prefix);
+    }
+    if (dueDays != null) {
+      _dueDateDays = dueDays;
+      await prefs.setInt(AppConstants.keyDueDateDays, dueDays);
+    }
+    if (currency != null) {
+      _currencySymbol = currency;
+      await prefs.setString(AppConstants.keyCurrencySymbol, currency);
+    }
+    notifyListeners();
+  }
+
+  Future<void> updatePurchasePrefix(String prefix) async {
+    _purchasePrefix = prefix;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(AppConstants.keyPurchasePrefix, prefix);
+    notifyListeners();
+  }
+
+  Future<void> updateReturnPrefix(String prefix) async {
+    _returnPrefix = prefix;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(AppConstants.keyReturnPrefix, prefix);
+    notifyListeners();
+  }
+
+  // â”€â”€ TAX â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Future<void> updateTaxSettings({
+    bool?   enabled,
+    double? percent,
+    bool?   gstEnabled,
+    String? gstNo,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (enabled != null) {
+      _taxEnabled = enabled;
+      await prefs.setBool(AppConstants.keyTaxEnabled, enabled);
+    }
+    if (percent != null) {
+      _taxPercent = percent;
+      await prefs.setDouble(AppConstants.keyTaxPercent, percent);
+    }
+    if (gstEnabled != null) {
+      _gstEnabled = gstEnabled;
+      await prefs.setBool(AppConstants.keyGstEnabled, gstEnabled);
+    }
+    if (gstNo != null) {
+      _gstNo = gstNo;
+      await prefs.setString(AppConstants.keyGstNo, gstNo);
+    }
+    notifyListeners();
+  }
+
+  // â”€â”€ DISCOUNT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Future<void> setDiscountEnabled(bool value) async {
+    _discountEnabled = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(AppConstants.keyDiscountEnabled, value);
+    notifyListeners();
+  }
+
+  // â”€â”€ BLUETOOTH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Future<void> setBluetoothPrinter(String address) async {
+    _bluetoothPrinter = address;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(AppConstants.keyBluetoothPrinter, address);
+    notifyListeners();
+  }
+
+  Future<void> updateInvoicePrintSettings({
+    bool? nativeLanguagePrinting,
+    int?  extraLinesAtPrintEnd,
+    int?  numberOfCopies,
+    bool? autoCutPaper,
+    bool? openCashDrawer,
+    bool? printShopName,
+    bool? printShopAddress,
+    bool? printShopEmail,
+    bool? printShopPhone,
+    bool? printGstin,
+    bool? printBillOfSupply,
+    bool? printSNo,
+    bool? printHsn,
+    bool? printUnit,
+    bool? printMrp,
+    bool? printDescription,
+    bool? printTotalQuantity,
+    bool? printAmountWithDecimal,
+    bool? printReceivedAmount,
+    bool? printBalanceAmount,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (nativeLanguagePrinting != null) { _nativeLanguagePrinting = nativeLanguagePrinting; await prefs.setBool('native_language_printing', nativeLanguagePrinting); }
+    if (extraLinesAtPrintEnd   != null) { _extraLinesAtPrintEnd   = extraLinesAtPrintEnd;   await prefs.setInt('extra_lines_at_print_end', extraLinesAtPrintEnd); }
+    if (numberOfCopies         != null) { _numberOfCopies         = numberOfCopies;         await prefs.setInt('number_of_copies', numberOfCopies); }
+    if (autoCutPaper           != null) { _autoCutPaper           = autoCutPaper;           await prefs.setBool('auto_cut_paper', autoCutPaper); }
+    if (openCashDrawer         != null) { _openCashDrawer         = openCashDrawer;         await prefs.setBool('open_cash_drawer', openCashDrawer); }
+    if (printShopName          != null) { _printShopName          = printShopName;          await prefs.setBool('print_shop_name', printShopName); }
+    if (printShopAddress       != null) { _printShopAddress       = printShopAddress;       await prefs.setBool('print_shop_address', printShopAddress); }
+    if (printShopEmail         != null) { _printShopEmail         = printShopEmail;         await prefs.setBool('print_shop_email', printShopEmail); }
+    if (printShopPhone         != null) { _printShopPhone         = printShopPhone;         await prefs.setBool('print_shop_phone', printShopPhone); }
+    if (printGstin             != null) { _printGstin             = printGstin;             await prefs.setBool('print_gstin', printGstin); }
+    if (printBillOfSupply      != null) { _printBillOfSupply      = printBillOfSupply;      await prefs.setBool('print_bill_of_supply', printBillOfSupply); }
+    if (printSNo               != null) { _printSNo               = printSNo;               await prefs.setBool('print_s_no', printSNo); }
+    if (printHsn               != null) { _printHsn               = printHsn;               await prefs.setBool('print_hsn', printHsn); }
+    if (printUnit              != null) { _printUnit              = printUnit;              await prefs.setBool('print_unit', printUnit); }
+    if (printMrp               != null) { _printMrp               = printMrp;               await prefs.setBool('print_mrp', printMrp); }
+    if (printDescription       != null) { _printDescription       = printDescription;       await prefs.setBool('print_description', printDescription); }
+    if (printTotalQuantity     != null) { _printTotalQuantity     = printTotalQuantity;     await prefs.setBool('print_total_quantity', printTotalQuantity); }
+    if (printAmountWithDecimal != null) { _printAmountWithDecimal = printAmountWithDecimal; await prefs.setBool('print_amount_with_decimal', printAmountWithDecimal); }
+    if (printReceivedAmount    != null) { _printReceivedAmount    = printReceivedAmount;    await prefs.setBool('print_received_amount', printReceivedAmount); }
+    if (printBalanceAmount     != null) { _printBalanceAmount     = printBalanceAmount;     await prefs.setBool('print_balance_amount', printBalanceAmount); }
+    notifyListeners();
+  }
+
+  Future<void> setThermalPaperWidthMm(int mm) async {
+    final v = (mm == 58) ? 58 : 80;
+    _thermalPaperWidthMm = v;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(AppConstants.keyThermalPaperMm, v);
+    notifyListeners();
+  }
+
+  // â”€â”€ UPI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Future<void> setUpiId(String id) async {
+    _upiId = id;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(AppConstants.keyUpiId, id);
+    notifyListeners();
+  }
+
+  Future<void> setShowPaymentQr(bool value) async {
+    _showPaymentQr = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(AppConstants.keyShowPaymentQr, value);
+    notifyListeners();
+  }
+
+  // â”€â”€ BILL COUNTERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Future<int> getNextInvoiceNo() async {
+    _lastInvoiceNo++;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(AppConstants.keyLastInvoiceNo, _lastInvoiceNo);
+    notifyListeners();
+    return _lastInvoiceNo;
+  }
+
+  Future<int> getNextPurchaseNo() async {
+    _lastPurchaseNo++;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(AppConstants.keyLastPurchaseNo, _lastPurchaseNo);
+    notifyListeners();
+    return _lastPurchaseNo;
+  }
+
+  Future<int> getNextReturnNo() async {
+    _lastReturnNo++;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(AppConstants.keyLastReturnNo, _lastReturnNo);
+    notifyListeners();
+    return _lastReturnNo;
+  }
+}
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+
+import '../../providers/customer_provider.dart';
+import '../../providers/inventory_provider.dart';
+import '../../providers/shell_provider.dart';
+import '../billing/new_bill_screen.dart';
+import '../dashboard/dashboard_screen.dart';
+import '../daybook/day_book_screen.dart';
+import '../items/items_screen.dart';
+import '../parties/parties_screen.dart';
+import '../purchase/purchase_screen.dart';
+import '../reports/reports_screen.dart';
+import '../return/sale_return_screen.dart';
+import '../settings/settings_screen.dart';
+import 'vyapar_home_screen.dart';
+
+class MainShellScreen extends StatefulWidget {
+  const MainShellScreen({super.key});
+
+  @override
+  State<MainShellScreen> createState() => _MainShellScreenState();
+}
+
+class _MainShellScreenState extends State<MainShellScreen> {
+  static const _titles = ['Home', 'Dashboard', 'Items', 'Reports'];
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  DateTime? _lastBackPress;
+
+  // Vyapar colors
+  static const _red  = Color(0xFFE31E24);
+  static const _blue = Color(0xFF1565C0);
+  static const _navy = Color(0xFF1A237E);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<InventoryProvider>().loadItems();
+      context.read<CustomerProvider>().loadCustomers();
+    });
+  }
+
+  void _open(Widget screen) {
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
+  }
+
+  Future<void> _openNewSale() async {
+    await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(builder: (_) => const NewBillScreen()));
+    if (!mounted) return;
+    context.read<ShellProvider>().bumpHomeRefresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ShellProvider>(
+      builder: (context, shell, _) {
+        final idx    = shell.currentIndex;
+        final isHome = idx == 0;
+
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            final nav = Navigator.of(context);
+            if (nav.canPop()) { nav.pop(); return; }
+            final now = DateTime.now();
+            if (_lastBackPress == null ||
+                now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
+              _lastBackPress = now;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Press back again to exit')));
+              return;
+            }
+            SystemNavigator.pop();
+          },
+          child: Scaffold(
+            key: _scaffoldKey,
+
+            // â”€â”€ VYAPAR-STYLE DRAWER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            drawer: Drawer(
+              child: Column(children: [
+                // Drawer header â€” navy like Vyapar
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(20, 52, 20, 20),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [_navy, Color(0xFF283593)],
+                      begin: Alignment.topLeft, end: Alignment.bottomRight)),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Container(
+                      width: 48, height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12)),
+                      child: const Icon(Icons.set_meal_rounded, color: Colors.white, size: 26)),
+                    const SizedBox(height: 12),
+                    const Text('Godawari Fish Ledger',
+                        style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 2),
+                    const Text('Business Menu',
+                        style: TextStyle(color: Colors.white60, fontSize: 11)),
+                  ]),
+                ),
+
+                Expanded(
+                  child: ListView(padding: const EdgeInsets.symmetric(vertical: 8), children: [
+                    _DrawerItem(icon: Icons.add_shopping_cart_outlined, label: 'New Sale',
+                        color: _red, onTap: () { Navigator.pop(context); _openNewSale(); }),
+                    _DrawerItem(icon: Icons.shopping_bag_outlined, label: 'Purchase Bill',
+                        color: _blue, onTap: () { Navigator.pop(context); _open(const PurchaseScreen()); }),
+                    _DrawerItem(icon: Icons.undo_outlined, label: 'Sale Return',
+                        color: Colors.orange, onTap: () { Navigator.pop(context); _open(const SaleReturnScreen()); }),
+                    _DrawerItem(icon: Icons.menu_book_outlined, label: 'Day Book',
+                        color: Colors.purple, onTap: () { Navigator.pop(context); _open(const DayBookScreen()); }),
+                    _DrawerItem(icon: Icons.groups_outlined, label: 'Parties',
+                        color: const Color(0xFFE65100), onTap: () { Navigator.pop(context); _open(const PartiesScreen()); }),
+                    _DrawerItem(icon: Icons.inventory_2_outlined, label: 'Items',
+                        color: Colors.teal, onTap: () { Navigator.pop(context); shell.setIndex(2); }),
+                    _DrawerItem(icon: Icons.assessment_outlined, label: 'Reports',
+                        color: Colors.indigo, onTap: () { Navigator.pop(context); shell.setIndex(3); }),
+                    const Divider(height: 16, indent: 16, endIndent: 16),
+                    _DrawerItem(icon: Icons.settings_outlined, label: 'Settings',
+                        color: Colors.grey, onTap: () {
+                          Navigator.pop(context);
+                          Navigator.of(context).push(MaterialPageRoute<void>(
+                              builder: (_) => const SettingsScreen()));
+                        }),
+                  ]),
+                ),
+              ]),
+            ),
+
+            // â”€â”€ APPBAR (non-home screens only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            appBar: isHome ? null : AppBar(
+              backgroundColor: _navy,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () => _scaffoldKey.currentState?.openDrawer()),
+              title: Text(_titles[idx],
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              centerTitle: true,
+              actions: [
+                IconButton(
+                  tooltip: 'Settings',
+                  icon: const Icon(Icons.settings_outlined),
+                  onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(builder: (_) => const SettingsScreen()))),
+              ],
+            ),
+
+            // â”€â”€ BODY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            body: IndexedStack(
+              index: idx,
+              children: const [
+                VyaparHomeScreen(),
+                DashboardScreen(),
+                ItemsScreen(),
+                ReportsScreen(),
+              ],
+            ),
+
+            // â”€â”€ VYAPAR-STYLE BOTTOM NAV â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            bottomNavigationBar: _VyaparBottomNav(
+              selectedIndex: idx,
+              onTap: shell.setIndex,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  VYAPAR BOTTOM NAV
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+class _VyaparBottomNav extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onTap;
+
+  const _VyaparBottomNav({required this.selectedIndex, required this.onTap});
+
+  static const _red  = Color(0xFFE31E24);
+  static const _navy = Color(0xFF1A237E);
+
+  static const _items = [
+    _NavItem(icon: Icons.home_outlined,       activeIcon: Icons.home_rounded,       label: 'Home'),
+    _NavItem(icon: Icons.bar_chart_outlined,  activeIcon: Icons.bar_chart_rounded,  label: 'Dashboard'),
+    _NavItem(icon: Icons.inventory_2_outlined, activeIcon: Icons.inventory_2_rounded, label: 'Items'),
+    _NavItem(icon: Icons.assessment_outlined, activeIcon: Icons.assessment_rounded, label: 'Reports'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 62,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.grey.shade200, width: 0.5)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8, offset: const Offset(0, -2))
+        ],
+      ),
+      child: Row(
+        children: List.generate(_items.length, (i) {
+          final item   = _items[i];
+          final active = i == selectedIndex;
+          return Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onTap(i),
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                // Active indicator dot â€” Vyapar style
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: active ? 28 : 0, height: active ? 3 : 0,
+                  margin: EdgeInsets.only(bottom: active ? 4 : 0),
+                  decoration: BoxDecoration(
+                    color: _red,
+                    borderRadius: BorderRadius.circular(2)),
+                ),
+                Icon(active ? item.activeIcon : item.icon,
+                    size: 22,
+                    color: active ? _red : Colors.grey.shade500),
+                const SizedBox(height: 2),
+                Text(item.label,
+                    style: TextStyle(
+                      fontSize: 9, fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                      color: active ? _red : Colors.grey.shade500)),
+              ]),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
+
+class _NavItem {
+  final IconData icon, activeIcon;
+  final String label;
+  const _NavItem({required this.icon, required this.activeIcon, required this.label});
+}
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  DRAWER ITEM
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+class _DrawerItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _DrawerItem({required this.icon, required this.label, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(children: [
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, color: color, size: 18)),
+          const SizedBox(width: 14),
+          Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
+        ]),
+      ),
+    );
+  }
+}
+/// Central configuration for Godawari Fish POS.
+/// All magic strings and numbers live here â€” never hardcode elsewhere.
+class AppConstants {
+  AppConstants._(); // Prevent instantiation
+
+  // â”€â”€ App Identity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  static const String appName     = 'Godawari Fish POS';
+  static const String shopName    = 'GODAWARI FISH';
+
+  // â”€â”€ CHANGED: matches Vyapar hard copy receipt
+  static const String shopTagline = 'The Real Taste Of Fresh Fish';
+
+  static const String shopAddress =
+      'Fish Market, Central Naka, MH-20';
+
+  static const String shopPhone   = '9371306189';
+  static const String shopEmail   = 'godawarifish@gmail.com';
+
+  static const String defaultUpiId = '9371306189@ibl';
+
+  // â”€â”€ Database â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  static const String dbName    = 'godawari_fish.db';
+  static const int    dbVersion = 3;
+
+  // â”€â”€ Table Names â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  static const String tableItems           = 'items';
+  static const String tableInvoices        = 'invoices';
+  static const String tableInvoiceItems    = 'invoice_items';
+  static const String tableCustomers       = 'customers';
+  static const String tableExpenses        = 'expenses';
+  static const String tablePartyPayments   = 'party_payments';
+  static const String tablePurchases       = 'purchases';
+  static const String tablePurchaseItems   = 'purchase_items';
+  static const String tableSaleReturns     = 'sale_returns';
+  static const String tableSaleReturnItems = 'sale_return_items';
+
+  // â”€â”€ SharedPreferences Keys â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  static const String keyThemeMode        = 'theme_mode';
+  static const String keyColorTheme       = 'color_theme';
+  static const String keyShopName         = 'shop_name';
+  static const String keyShopAddress      = 'shop_address';
+  static const String keyShopPhone        = 'shop_phone';
+  static const String keyShopEmail        = 'shop_email';
+  static const String keyInvoicePrefix    = 'invoice_prefix';
+  static const String keyLastInvoiceNo    = 'last_invoice_no';
+  static const String keyReceiptTheme     = 'receipt_theme';
+  static const String keyTaxEnabled       = 'tax_enabled';
+  static const String keyTaxPercent       = 'tax_percent';
+  static const String keyGstEnabled       = 'gst_enabled';
+  static const String keyGstNo            = 'gst_no';
+  static const String keyUpiId            = 'upi_id';
+  static const String keyShowPaymentQr    = 'show_payment_qr';
+  static const String keyDiscountEnabled  = 'discount_enabled';
+  static const String keyCurrencySymbol   = 'currency_symbol';
+  static const String keyDueDateDays      = 'due_date_days';
+  static const String keyBluetoothPrinter = 'bluetooth_printer';
+  static const String keyThermalPaperMm   = 'thermal_paper_mm';
+  static const String keyPurchasePrefix   = 'purchase_prefix';
+  static const String keyLastPurchaseNo   = 'last_purchase_no';
+  static const String keyReturnPrefix     = 'return_prefix';
+  static const String keyLastReturnNo     = 'last_return_no';
+
+  // â”€â”€ Domain Lists â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  static const List<String> fishUnits = [
+    'Kg',
+    'Gram',
+    'Piece',
+    'Dozen',
+    'Box',
+  ];
+
+  static const List<String> fishCategories = [
+    'Fresh Water Fish',
+    'Sea Water Fish',
+    'Prawn & Shrimp',
+    'Crab & Lobster',
+    'Squid & Octopus',
+    'Chicken',
+    'Mutton',
+    'Other',
+  ];
+
+  // â”€â”€ Defaults â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  // â”€â”€ CHANGED: Rs. to match Vyapar receipt style
+  static const String defaultCurrency = 'Rs.';
+
+  static const String defaultPrefix         = 'GFC';
+  static const String defaultPurchasePrefix = 'GFP';
+  static const String defaultReturnPrefix   = 'GSR';
+
+  static const int defaultDueDays       = 15;
+  static const int defaultThermalMm     = 58;
+  static const double defaultTaxPercent = 0.0;
+
+  // â”€â”€ UI / Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  static const double paddingS  = 8.0;
+  static const double paddingM  = 12.0;
+  static const double paddingL  = 16.0;
+  static const double paddingXL = 24.0;
+
+  static const double radiusS = 8.0;
+  static const double radiusM = 12.0;
+  static const double radiusL = 16.0;
+
+  // â”€â”€ Timeouts & Limits â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  static const int maxInvoiceItems = 50;
+  static const Duration snackDuration  = Duration(seconds: 3);
+  static const Duration splashDuration = Duration(seconds: 2);
+}

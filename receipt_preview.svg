@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="430" height="1180" viewBox="0 0 430 1180">
+  <rect width="430" height="1180" fill="#d9d0a6"/>
+  <rect x="28" y="18" width="374" height="1140" rx="4" fill="#f6efc7" stroke="#b8ae82"/>
+
+  <image href="file:///c:/Users/Prem/godawari_fish_pos/assets/images/log.png" x="110" y="28" width="210" height="110" preserveAspectRatio="xMidYMid meet"/>
+
+  <text x="215" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#111">GODAWARI FISH</text>
+  <rect x="96" y="176" width="238" height="30" rx="4" fill="#111"/>
+  <text x="215" y="197" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#fff">The Real Taste Of Fresh Fish</text>
+
+  <text x="215" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#111">Fish Market Centrel Naka</text>
+  <text x="215" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#111">MH-20</text>
+  <text x="215" y="278" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#111">Ph.No.: 9371306189</text>
+  <text x="215" y="301" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#111">Email: godawarifish@gmail.com</text>
+
+  <line x1="55" y1="326" x2="375" y2="326" stroke="#666" stroke-dasharray="4 3"/>
+  <text x="215" y="352" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#111">Tax Invoice</text>
+
+  <text x="58" y="386" font-family="Arial, sans-serif" font-size="16" fill="#111">Invoice No: GFC4256</text>
+  <text x="290" y="386" font-family="Arial, sans-serif" font-size="16" fill="#111">Date: 15/05/2026</text>
+  <text x="58" y="410" font-family="Arial, sans-serif" font-size="16" fill="#111">Due Date: 30-05-2026</text>
+  <text x="298" y="410" font-family="Arial, sans-serif" font-size="16" fill="#111">Time: 12:28 PM</text>
+
+  <line x1="55" y1="430" x2="375" y2="430" stroke="#666" stroke-dasharray="4 3"/>
+  <text x="215" y="457" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#111">Al RG</text>
+  <text x="215" y="480" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#111">Ph.No.: 919371111160</text>
+
+  <line x1="55" y1="500" x2="375" y2="500" stroke="#666" stroke-dasharray="4 3"/>
+
+  <text x="58" y="530" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#111">#</text>
+  <text x="88" y="530" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#111">Item Name</text>
+  <text x="88" y="550" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#111">Quantity</text>
+  <text x="266" y="540" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#111">Price</text>
+  <text x="340" y="540" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#111">Amount</text>
+
+  <line x1="55" y1="564" x2="375" y2="564" stroke="#666" stroke-dasharray="4 3"/>
+
+  <text x="58" y="593" font-family="Arial, sans-serif" font-size="16" fill="#111">1</text>
+  <text x="88" y="593" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#111">Boneless Al RG</text>
+  <text x="88" y="615" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#111">5 Kg</text>
+  <text x="260" y="604" font-family="Arial, sans-serif" font-size="16" fill="#111">560.00</text>
+  <text x="340" y="604" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#111">2800.00</text>
+
+  <line x1="55" y1="632" x2="375" y2="632" stroke="#666" stroke-dasharray="4 3"/>
+
+  <text x="58" y="660" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#111">Qty: 5</text>
+  <text x="180" y="660" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#111">Items: 1</text>
+  <text x="332" y="660" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#111">2800.00</text>
+
+  <line x1="55" y1="676" x2="375" y2="676" stroke="#666" stroke-dasharray="4 3"/>
+
+  <text x="135" y="706" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#111">Total</text>
+  <text x="250" y="706" font-family="Arial, sans-serif" font-size="16" fill="#111">:</text>
+  <text x="332" y="706" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#111">2800.00</text>
+
+  <text x="120" y="730" font-family="Arial, sans-serif" font-size="16" fill="#111">Balance</text>
+  <text x="250" y="730" font-family="Arial, sans-serif" font-size="16" fill="#111">:</text>
+  <text x="332" y="730" font-family="Arial, sans-serif" font-size="16" fill="#111">2800.00</text>
+
+  <text x="98" y="754" font-family="Arial, sans-serif" font-size="16" fill="#111">Current Bal.</text>
+  <text x="250" y="754" font-family="Arial, sans-serif" font-size="16" fill="#111">:</text>
+  <text x="332" y="754" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#111">9700.00</text>
+
+  <line x1="55" y1="778" x2="375" y2="778" stroke="#666" stroke-dasharray="4 3"/>
+
+  <rect x="136" y="810" width="158" height="158" fill="#fff" stroke="#444"/>
+  <path d="M150 824h28v28h-10v-18h-18zM252 824h28v28h-10v-18h-18zM150 926h28v28h-10v-18h-18zM252 926h28v28h-10v-18h-18z" fill="#111"/>
+  <rect x="185" y="844" width="8" height="8" fill="#111"/>
+  <rect x="201" y="844" width="8" height="8" fill="#111"/>
+  <rect x="217" y="844" width="8" height="8" fill="#111"/>
+  <rect x="233" y="844" width="8" height="8" fill="#111"/>
+  <rect x="177" y="860" width="8" height="8" fill="#111"/>
+  <rect x="193" y="860" width="8" height="8" fill="#111"/>
+  <rect x="225" y="860" width="8" height="8" fill="#111"/>
+  <rect x="241" y="860" width="8" height="8" fill="#111"/>
+  <rect x="169" y="876" width="8" height="8" fill="#111"/>
+  <rect x="185" y="876" width="8" height="8" fill="#111"/>
+  <rect x="209" y="876" width="8" height="8" fill="#111"/>
+  <rect x="233" y="876" width="8" height="8" fill="#111"/>
+  <rect x="249" y="876" width="8" height="8" fill="#111"/>
+  <rect x="177" y="892" width="8" height="8" fill="#111"/>
+  <rect x="201" y="892" width="8" height="8" fill="#111"/>
+  <rect x="217" y="892" width="8" height="8" fill="#111"/>
+  <rect x="241" y="892" width="8" height="8" fill="#111"/>
+  <rect x="169" y="908" width="8" height="8" fill="#111"/>
+  <rect x="193" y="908" width="8" height="8" fill="#111"/>
+  <rect x="209" y="908" width="8" height="8" fill="#111"/>
+  <rect x="225" y="908" width="8" height="8" fill="#111"/>
+  <rect x="249" y="908" width="8" height="8" fill="#111"/>
+
+  <text x="215" y="997" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#111">Scan this QR code to pay</text>
+  <text x="215" y="1018" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#111">UPI ID:</text>
+  <text x="215" y="1040" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#111">9371306189-2@ibl</text>
+  <text x="215" y="1062" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#111">Amount: 2800.00</text>
+
+  <line x1="55" y1="1084" x2="375" y2="1084" stroke="#666" stroke-dasharray="4 3"/>
+  <text x="215" y="1112" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#111">Terms &amp; Conditions</text>
+  <text x="215" y="1140" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#111">Thank You Visit Again</text>
+</svg>

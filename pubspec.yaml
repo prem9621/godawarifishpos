@@ -1,0 +1,91 @@
+name: godawari_fish_pos
+
+description: Godawari Fish Ledger
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # DATABASE
+  sqflite: ^2.3.3+1
+  sqflite_common_ffi: ^2.3.2
+  path: ^1.9.0
+
+  # STATE MANAGEMENT
+  provider: ^6.1.2
+
+  # LOCAL STORAGE
+  shared_preferences: ^2.2.3
+
+  # DATE FORMAT
+  intl: ^0.19.0
+
+  # UI
+  google_fonts: ^6.2.1
+
+  # QR CODE
+  qr_flutter: ^4.1.0
+  qr: ^3.0.2
+
+  # THERMAL PRINTER
+  print_bluetooth_thermal: ^1.1.2  # ✅ replaced blue_thermal_printer
+  esc_pos_utils_plus: ^2.0.2
+  permission_handler: ^11.3.1
+
+  # PDF / PRINT
+  pdf: ^3.10.8
+  printing: ^5.12.0
+
+  # STORAGE
+  path_provider: ^2.1.3
+
+  # SHARE
+  share_plus: ^10.1.4
+
+  # UUID
+  uuid: ^4.5.1
+
+  # IMAGE SUPPORT
+  image: ^4.2.0
+  firebase_core: ^4.9.0
+  cloud_firestore: ^6.4.1
+  firebase_auth: ^6.5.1
+  connectivity_plus: ^7.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^4.0.0
+
+  # APP ICON GENERATOR
+  flutter_launcher_icons: ^0.14.3
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/log.png
+    - assets/images/app_icon.png
+
+
+# ─────────────────────────────────────────────────────────────
+# APP ICON CONFIG
+# ─────────────────────────────────────────────────────────────
+flutter_launcher_icons:
+  android: true
+  ios: true
+
+  image_path: "assets/images/app_icon.png"
+
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/images/app_icon.png"

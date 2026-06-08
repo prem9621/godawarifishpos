@@ -1,0 +1,86 @@
+﻿import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/utils/app_utils.dart';
+import '../../database/database_helper.dart';
+import '../../providers/settings_provider.dart';
+
+class DayBookScreen extends StatefulWidget {
+  const DayBookScreen({super.key});
+
+  @override
+  State<DayBookScreen> createState() => _DayBookScreenState();
+}
+
+class _DayBookScreenState extends State<DayBookScreen> {
+  final _db = DatabaseHelper.instance;
+  List<Map<String, dynamic>> _rows = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    final rows = await _db.getDayBook(limit: 200);
+    if (mounted) {
+      setState(() {
+        _rows = rows;
+        _loading = false;
+      });
+    }
+  }
+
+  IconData _icon(String kind) {
+    switch (kind) {
+      case 'sale':
+        return Icons.receipt_long_outlined;
+      case 'purchase':
+        return Icons.shopping_bag_outlined;
+      case 'return':
+        return Icons.undo_outlined;
+      case 'expense':
+        return Icons.money_off_csred_outlined;
+      case 'payment':
+        return Icons.payments_outlined;
+      default:
+        return Icons.circle_outlined;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sym = context.watch<SettingsProvider>().currencySymbol;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Day book')),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: _rows.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, i) {
+                  final r = _rows[i];
+                  final kind = r['kind'] as String? ?? '';
+                  return ListTile(
+                    leading: Icon(_icon(kind)),
+                    title: Text(r['title'] as String? ?? ''),
+                    subtitle: Text('${r['subtitle'] ?? ''}\n${r['ts'] ?? ''}', style: const TextStyle(fontSize: 12)),
+                    isThreeLine: true,
+                    trailing: Text(
+                      AppUtils.formatCurrency((r['amount'] as num?)?.toDouble() ?? 0, symbol: sym),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  );
+                },
+              ),
+            ),
+    );
+  }
+}

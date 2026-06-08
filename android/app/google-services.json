@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "399085647790",
+    "project_id": "godawari-fish-pos",
+    "storage_bucket": "godawari-fish-pos.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:399085647790:android:35cb6cf4ed9c0956aa3a3f",
+        "android_client_info": {
+          "package_name": "com.example.godawari_fish_pos"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhdFfRkIZqt5QwiGDzQFHq496tp8UqkOk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
