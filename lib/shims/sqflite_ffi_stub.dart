@@ -3,5 +3,6 @@ void sqfliteFfiInit() {
   // No-op on web
 }
 
-// Dummy variable - won't be used on web
+// Dummy variables - won't be used on web
 var databaseFactoryFfi;
+var databaseFactory;
