@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -92,7 +93,7 @@ class InvoiceImageGenerator {
   }
 }
 
-class _InvoiceImageCard extends StatelessWidget {
+class _InvoiceImageCard extends StatefulWidget {
   final Map<String, dynamic> invoice;
   final List<Map<String, dynamic>> items;
   final SettingsProvider settings;
@@ -104,86 +105,143 @@ class _InvoiceImageCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final sym = settings.currencySymbol;
-    final shopName = settings.shopName.isEmpty ? AppConstants.shopName : settings.shopName;
-    final created = DateTime.tryParse(invoice['created_at']?.toString() ?? '') ?? DateTime.now();
-    final dateStr = DateFormat('dd/MM/yyyy').format(created);
-    final invoiceNo = invoice['invoice_no']?.toString() ?? '';
-    final custName = invoice['customer_name']?.toString() ?? 'Walk-in Customer';
-    final custPhone = invoice['customer_phone']?.toString() ?? '';
+  State<_InvoiceImageCard> createState() => _InvoiceImageCardState();
+}
 
-    final total = (invoice['total'] as num?)?.toDouble() ?? 0;
-    final paid = (invoice['paid'] as num?)?.toDouble() ?? 0;
-    final balance = (invoice['balance'] as num?)?.toDouble() ?? (total - paid);
-    final prevBal = (invoice['previous_balance'] as num?)?.toDouble() ?? 0;
-    final currBal = (invoice['current_balance'] as num?)?.toDouble() ?? (balance + prevBal);
-    final deliveryBoyName = invoice['delivery_boy_name']?.toString() ?? '';
+class _InvoiceImageCardState extends State<_InvoiceImageCard> {
+  ui.Image? _logoImage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLogo();
+  }
+
+  Future<void> _loadLogo() async {
+    try {
+      final data = await rootBundle.load('assets/images/log.png');
+      final bytes = data.buffer.asUint8List();
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      if (mounted) {
+        setState(() {
+          _logoImage = frame.image;
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load logo: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sym = widget.settings.currencySymbol;
+    final shopName = widget.settings.shopName.isEmpty ? AppConstants.shopName : widget.settings.shopName;
+    final created = DateTime.tryParse(widget.invoice['created_at']?.toString() ?? '') ?? DateTime.now();
+    final dateStr = DateFormat('dd/MM/yyyy').format(created);
+    final timeStr = DateFormat('hh:mm a').format(created);
+    final invoiceNo = widget.invoice['invoice_no']?.toString() ?? '';
+    final custName = widget.invoice['customer_name']?.toString() ?? 'Walk-in Customer';
+    final custPhone = widget.invoice['customer_phone']?.toString() ?? '';
+
+    final total = (widget.invoice['total'] as num?)?.toDouble() ?? 0;
+    final paid = (widget.invoice['paid'] as num?)?.toDouble() ?? 0;
+    final balance = (widget.invoice['balance'] as num?)?.toDouble() ?? (total - paid);
+    final prevBal = (widget.invoice['previous_balance'] as num?)?.toDouble() ?? 0;
+    final currBal = (widget.invoice['current_balance'] as num?)?.toDouble() ?? (balance + prevBal);
+    final shipping = (widget.invoice['shipping'] as num?)?.toDouble() ?? 0;
+    final packaging = (widget.invoice['packaging'] as num?)?.toDouble() ?? 0;
+    final deliveryBoyName = widget.invoice['delivery_boy_name']?.toString() ?? '';
     
-    int totalItemsCount = 0;
+    double totalQty = 0;
+    int totalItemsCount = widget.items.length;
     double totalDiscAmt = 0;
+    double subtotal = 0;
+
+    for (var item in widget.items) {
+      final qty = (item['quantity'] as num?)?.toDouble() ?? 0;
+      final price = (item['price'] as num?)?.toDouble() ?? 0;
+      totalQty += qty;
+      subtotal += qty * price;
+    }
 
     return Container(
       width: 380,
       color: Colors.white,
       padding: const EdgeInsets.all(20),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Shop Name
-          Text(
-            shopName.toUpperCase(),
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            AppConstants.shopTagline,
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
-            textAlign: TextAlign.center,
-          ),
-          if (settings.shopAddress.isNotEmpty)
-            Text(
-              settings.shopAddress,
-              style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-              textAlign: TextAlign.center,
+          // Logo
+          if (_logoImage != null) ...[
+            Center(
+              child: RawImage(
+                image: _logoImage!,
+                width: 180,
+                fit: BoxFit.contain,
+              ),
             ),
-          if (settings.shopPhone.isNotEmpty)
+            const SizedBox(height: 12),
+          ],
+
+          // Shop Details
+          Text(
+            AppConstants.shopAddress,
+            style: const TextStyle(fontSize: 10, color: Colors.black87),
+          ),
+          if (AppConstants.shopPhone.isNotEmpty)
             Text(
-              'Ph: ${settings.shopPhone}',
-              style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+              'Ph.No.: ${AppConstants.shopPhone}',
+              style: const TextStyle(fontSize: 10, color: Colors.black87),
             ),
-          const Divider(height: 16, thickness: 1, color: Colors.black),
+          if (AppConstants.shopEmail.isNotEmpty)
+            Text(
+              'Email: ${AppConstants.shopEmail}',
+              style: const TextStyle(fontSize: 10, color: Colors.black87),
+            ),
+          const SizedBox(height: 12),
 
           // Title
-          const Text(
-            'Bill Invoice',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+          const Center(
+            child: Text(
+              'Bill Invoice',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+            ),
           ),
-          const Divider(height: 16, thickness: 1, color: Colors.black),
+          const Divider(height: 12, thickness: 1, color: Colors.black),
 
-          // Meta
+          // Meta (Invoice No, Date, Time)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Invoice No: $invoiceNo', style: const TextStyle(fontSize: 11, color: Colors.black87)),
-              Text('Date: $dateStr', style: const TextStyle(fontSize: 11, color: Colors.black87)),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('Date: $dateStr', style: const TextStyle(fontSize: 11, color: Colors.black87)),
+                  Text('Time: $timeStr', style: const TextStyle(fontSize: 11, color: Colors.black87)),
+                ],
+              ),
             ],
           ),
-          const Divider(height: 16, thickness: 1, color: Colors.black),
+          const Divider(height: 12, thickness: 1, color: Colors.black),
 
-          // Customer
-          Text(
-            custName,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87),
-            textAlign: TextAlign.center,
+          // Bill To
+          const Text(
+            'Bill To:',
+            style: TextStyle(fontSize: 11, color: Colors.black87),
           ),
-          if (custPhone.isNotEmpty)
-            Text('Ph: $custPhone', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-          const Divider(height: 16, thickness: 1, color: Colors.black),
+          Center(
+            child: Text(
+              custName.toUpperCase(),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const Divider(height: 12, thickness: 1, color: Colors.black),
 
-          // Items Table (Exact Vyapar format)
+          // Items Table
           Column(
             children: [
               // Header
@@ -199,7 +257,7 @@ class _InvoiceImageCard extends StatelessWidget {
                 ),
               ),
               const Divider(height: 1, thickness: 1, color: Colors.black),
-              ...items.asMap().entries.map((entry) {
+              ...widget.items.asMap().entries.map((entry) {
                 final i = entry.key;
                 final item = entry.value;
                 final name = item['item_name']?.toString() ?? 'Item';
@@ -213,7 +271,6 @@ class _InvoiceImageCard extends StatelessWidget {
                 final finalAmt = rawAmt - discAmt;
                 final unit = item['unit']?.toString() ?? '';
                 
-                totalItemsCount++;
                 totalDiscAmt += discAmt;
 
                 return Padding(
@@ -227,8 +284,8 @@ class _InvoiceImageCard extends StatelessWidget {
                           Expanded(
                             child: Text(name, style: const TextStyle(fontSize: 11, color: Colors.black87, fontWeight: FontWeight.w500)),
                           ),
-                          SizedBox(width: 70, child: Text(price.toStringAsFixed(2), style: const TextStyle(fontSize: 11, color: Colors.black87), textAlign: TextAlign.right)),
-                          SizedBox(width: 70, child: Text(rawAmt.toStringAsFixed(2), style: const TextStyle(fontSize: 11, color: Colors.black87), textAlign: TextAlign.right)),
+                          SizedBox(width: 70, child: Text('$sym${price.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, color: Colors.black87), textAlign: TextAlign.right)),
+                          SizedBox(width: 70, child: Text('$sym${rawAmt.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, color: Colors.black87), textAlign: TextAlign.right)),
                         ],
                       ),
                       Row(
@@ -239,113 +296,75 @@ class _InvoiceImageCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      if (discPct > 0 && discAmt > 0) ...[
-                        Row(
-                          children: [
-                            const SizedBox(width: 40),
-                            Expanded(
-                              child: Text('    Disc.(${discPct.toStringAsFixed(0)}%)', style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
-                            ),
-                            SizedBox(width: 70, child: Text(':', style: TextStyle(fontSize: 10, color: Colors.grey.shade600), textAlign: TextAlign.right)),
-                            SizedBox(width: 70, child: Text('-${_amt(discAmt)}', style: const TextStyle(fontSize: 10, color: Colors.black87), textAlign: TextAlign.right)),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            const SizedBox(width: 40),
-                            Expanded(
-                              child: Text('    Final Amount', style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
-                            ),
-                            SizedBox(width: 70, child: Text(':', style: TextStyle(fontSize: 10, color: Colors.grey.shade600), textAlign: TextAlign.right)),
-                            SizedBox(width: 70, child: Text(_amt(finalAmt), style: const TextStyle(fontSize: 10, color: Colors.black87), textAlign: TextAlign.right)),
-                          ],
-                        ),
-                      ],
                     ],
                   ),
                 );
               }),
             ],
           ),
-          const Divider(height: 16, thickness: 1, color: Colors.black),
+          const Divider(height: 12, thickness: 1, color: Colors.black),
 
-          // Totals (Exact Vyapar format)
+          // Qty & Items
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Qty: ${_qtyStr(totalQty)}', style: const TextStyle(fontSize: 11, color: Colors.black87)),
+              Text('Items: $totalItemsCount', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87)),
+              Text('$sym${subtotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, color: Colors.black87)),
+            ],
+          ),
+          const Divider(height: 12, thickness: 1, color: Colors.black),
+
+          // Totals
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _colonTotalRow('Total', '$totalItemsCount'),
-                if (totalDiscAmt > 0) _colonTotalRow('Total Disc.', '-$sym ${_amt(totalDiscAmt)}'),
+                _colonTotalRow('Subtotal', '$sym${_amt(subtotal)}'),
+                if (shipping > 0) _colonTotalRow('Shipping', '$sym${_amt(shipping)}'),
+                if (packaging > 0) _colonTotalRow('Packaging', '$sym${_amt(packaging)}'),
+                _colonTotalRow('Paid', '$sym${_amt(paid)}'),
                 const Divider(height: 8, thickness: 1, color: Colors.black),
-                _colonTotalRow('Total', '$sym ${_amt(total)}', bold: true),
-                if (settings.printReceivedAmount) _colonTotalRow('Received', '$sym ${_amt(paid)}'),
-                if (settings.printBalanceAmount) _colonTotalRow('Balance', '$sym ${_amt(balance)}'),
-                if (prevBal != 0) _colonTotalRow('Previous Bal.', '$sym ${_amt(prevBal)}'),
-                if (currBal != 0) _colonTotalRow('Current Bal.', '$sym ${_amt(currBal)}', bold: true),
+                _colonTotalRow('Total', '$sym${_amt(total)}', bold: true),
+                _colonTotalRow('Balance', '$sym${_amt(balance)}'),
+                _colonTotalRow('Current Bal.', '$sym${_amt(currBal)}'),
+                _colonTotalRow('Previous Bal.', '$sym${_amt(prevBal)}'),
               ],
             ),
           ),
-          const Divider(height: 16, thickness: 1, color: Colors.black),
+          const Divider(height: 12, thickness: 1, color: Colors.black),
 
-          // You Saved section
-          if (totalDiscAmt > 0) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: _colonTotalRow('You Saved', '$sym ${_amt(totalDiscAmt)}', bold: true),
-            ),
-            const Divider(height: 16, thickness: 1, color: Colors.black),
-          ],
+          // Terms & Conditions
+          const Text(
+            'Terms & Conditions',
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87),
+          ),
+          const Text('----', style: TextStyle(fontSize: 10, color: Colors.grey)),
+          const SizedBox(height: 16),
 
-          // Signature
-          if (settings.printSignature) ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  children: [
-                    Container(width: 100, height: 1, color: Colors.black),
-                    const SizedBox(height: 4),
-                    Text('Received Sign', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-                  ],
-                ),
-                Column(
-                  children: [
-                    Container(width: 100, height: 1, color: Colors.black),
-                    const SizedBox(height: 4),
-                    Text('Auth. Sign', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-                  ],
-                ),
-              ],
-            ),
-            const Divider(height: 16, thickness: 1, color: Colors.black),
-          ],
+          // Received Sign
+          const Text('....... Received Sign .......', style: TextStyle(fontSize: 10, color: Colors.black87)),
+          const SizedBox(height: 4),
 
-          // Delivery Boy
-          if (deliveryBoyName.isNotEmpty) ...[
-            Text(
-              'Delivery by: $deliveryBoyName',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-          ],
+          // Delivery by
+          if (deliveryBoyName.isNotEmpty)
+            Text('Delivery by... $deliveryBoyName', style: const TextStyle(fontSize: 10, color: Colors.black87)),
+          const SizedBox(height: 4),
+
+          const Divider(height: 12, thickness: 1, color: Colors.black),
 
           // Footer
-          Text(
-            'Thank You Visit Again',
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          const Center(
+            child: Text(
+              'Thank You Visit Again',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.normal,
+                color: Colors.black87,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Fresh to your kitchen - Fish, Sea food, Chicken, Mutton',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -357,7 +376,6 @@ class _InvoiceImageCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
-          const SizedBox(width: 40),
           Text(
             '$label :',
             style: TextStyle(fontSize: 11, fontWeight: bold ? FontWeight.bold : FontWeight.normal, color: Colors.black87),
