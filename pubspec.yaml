@@ -36,8 +36,9 @@ dependencies:
   qr_flutter: ^4.1.0
   qr: ^3.0.2
 
-  # THERMAL PRINTER
-  print_bluetooth_thermal: ^1.1.2  # ✅ replaced blue_thermal_printer
+  # THERMAL PRINTER — using local copy so Java fix is never overwritten
+  blue_thermal_printer:
+    path: packages/blue_thermal_printer
   esc_pos_utils_plus: ^2.0.2
   permission_handler: ^11.3.1
 
@@ -56,9 +57,13 @@ dependencies:
 
   # IMAGE SUPPORT
   image: ^4.2.0
+
+  # FIREBASE
   firebase_core: ^4.9.0
   cloud_firestore: ^6.4.1
   firebase_auth: ^6.5.1
+
+  # NETWORK
   connectivity_plus: ^7.1.1
 
 dev_dependencies:

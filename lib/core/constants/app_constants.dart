@@ -19,7 +19,7 @@ class AppConstants {
 
   // ── Database ──────────────────────────────────────────────────────────────
   static const String dbName = 'godawari_fish.db';
-  static const int dbVersion = 10;
+  static const int dbVersion = 11;
 
   // ── Table Names ───────────────────────────────────────────────────────────
   static const String tableItems = 'items';
@@ -49,6 +49,7 @@ class AppConstants {
   static const String keyGstNo = 'gst_no';
   static const String keyUpiId = 'upi_id';
   static const String keyShowPaymentQr = 'show_payment_qr';
+  static const String keyShowQrCode = 'show_qr_code';
   static const String keyDiscountEnabled = 'discount_enabled';
   static const String keyCurrencySymbol = 'currency_symbol';
   static const String keyDueDateDays = 'due_date_days';

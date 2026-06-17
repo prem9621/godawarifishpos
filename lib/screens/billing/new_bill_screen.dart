@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -79,6 +80,7 @@ class _NewBillScreenState extends State<NewBillScreen>
         _packagingCtrl.text = bill.packaging.toStringAsFixed(2);
         _showShipping = bill.shipping > 0;
         _showPackaging = bill.packaging > 0;
+        _deliveryPerson = bill.deliveryBoyName ?? '';
         _findAndSetCustomer(bill.editingInvoiceId!);
       }
     });
@@ -126,6 +128,7 @@ class _NewBillScreenState extends State<NewBillScreen>
   }
 
   void _onBillChanged() {
+    if (!mounted) return;
     if (!_paidUserEdited) _syncPaid();
   }
 
@@ -456,6 +459,7 @@ class _NewBillScreenState extends State<NewBillScreen>
           'created_at': DateTime.now().toIso8601String(),
           'updated_at': DateTime.now().toIso8601String(),
         });
+        if (!mounted) return;
         _customer = _customer!.copyWith(id: customerId);
       }
 
@@ -494,7 +498,7 @@ class _NewBillScreenState extends State<NewBillScreen>
       final notes = [
         _notesCtrl.text.trim(),
         if (deliveryPerson.isNotEmpty) 'Delivery: $deliveryPerson',
-      ].where((s) => s.isNotEmpty).join(' | ');
+      ].where((e) => e.isNotEmpty).join(' | ');
 
       final invoiceMap = {
         'invoice_no': invoiceNo,
@@ -512,6 +516,8 @@ class _NewBillScreenState extends State<NewBillScreen>
         'previous_balance': prevBal,
         'current_balance': curBal,
         'payment_method': _paymentMethod,
+        'delivery_boy_id': bill.deliveryBoyId,
+        'delivery_boy_name': bill.deliveryBoyName ?? '',
         'status': balance <= 0
             ? 'paid'
             : paid > 0
@@ -524,13 +530,13 @@ class _NewBillScreenState extends State<NewBillScreen>
       };
 
       final itemMaps = bill.lines
-          .map((l) => {
-                'item_id': l.itemId,
-                'item_name': l.itemName,
-                'quantity': l.qty,
-                'unit': l.unit,
-                'price': l.price,
-                'amount': l.amount,
+          .map((e) => {
+                'item_id': e.itemId,
+                'item_name': e.itemName,
+                'quantity': e.qty,
+                'unit': e.unit,
+                'price': e.price,
+                'amount': e.amount,
               })
           .toList();
 
@@ -543,7 +549,11 @@ class _NewBillScreenState extends State<NewBillScreen>
         finalId =
             await DatabaseHelper.instance.insertInvoice(invoiceMap, itemMaps);
       }
-      await FirebaseSyncService.instance.pushInvoice(finalId);
+      
+      // Don't await Firebase sync — let it happen in background to avoid UI delays
+      unawaited(FirebaseSyncService.instance.pushInvoice(finalId).catchError((e) {
+        debugPrint('Firebase sync failed: $e');
+      }));
 
       if (!mounted) return;
       bill.clear();
@@ -565,13 +575,24 @@ class _NewBillScreenState extends State<NewBillScreen>
         _billDate = DateTime.now();
       });
       navigator.pop();
-      if (mounted) await showReceiptPopup(context, finalId);
+      if (mounted) {
+        // Use a local context copy for showReceiptPopup
+        final localContext = context;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (localContext.mounted) {
+            showReceiptPopup(localContext, finalId);
+          }
+        });
+      }
     } catch (e) {
+      debugPrint('❌ _saveBill error: $e');
       if (mounted) setState(() => _saving = false);
-      messenger.showSnackBar(SnackBar(
-          content: Text('Error saving bill: $e'),
-          backgroundColor: _kRed,
-          behavior: SnackBarBehavior.floating));
+      if (mounted) {
+        messenger.showSnackBar(SnackBar(
+            content: Text('Error saving bill: $e'),
+            backgroundColor: _kRed,
+            behavior: SnackBarBehavior.floating));
+      }
     }
   }
 
@@ -1440,7 +1461,7 @@ onChanged: (_) => setState(() => _paidUserEdited = true))),
       onTap: () async {
         final boys = await DatabaseHelper.instance.getDeliveryBoys();
         if (!mounted) return;
-        final picked = await showModalBottomSheet<String>(
+        final picked = await showModalBottomSheet<Map<String, dynamic>?>(
           context: context,
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
@@ -1450,7 +1471,11 @@ onChanged: (_) => setState(() => _paidUserEdited = true))),
           ),
         );
         if (picked != null && mounted) {
-          setState(() => _deliveryPerson = picked);
+          setState(() => _deliveryPerson = picked['name'] as String);
+          context.read<BillingProvider>().setDeliveryBoy(
+            picked['id'] as int?,
+            picked['name'] as String?,
+          );
         }
       },
       child: Container(
@@ -2457,7 +2482,7 @@ class _DeliveryPickerSheet extends StatelessWidget {
           trailing: selected.isEmpty
               ? const Icon(Icons.check_circle_rounded, color: Colors.teal)
               : null,
-          onTap: () => Navigator.pop(context, ''),
+          onTap: () => Navigator.pop(context, null),
         ),
         const Divider(height: 12),
         ...boys.map((b) {
@@ -2481,7 +2506,7 @@ class _DeliveryPickerSheet extends StatelessWidget {
             trailing: isSel
                 ? const Icon(Icons.check_circle_rounded, color: Colors.teal)
                 : null,
-            onTap: () => Navigator.pop(context, name),
+            onTap: () => Navigator.pop(context, {'id': b['id'], 'name': name}),
           );
         }),
       ]),

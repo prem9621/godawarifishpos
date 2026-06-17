@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../../core/export/party_account_export.dart';
-import '../../core/printing/thermal_invoice_printer.dart';
+import '../../core/receipt/thermal_invoice_printer.dart';
 import '../../database/database_helper.dart';
 import '../../models/customer_model.dart';
 import '../../providers/billing_provider.dart';
@@ -390,7 +390,7 @@ class _PartyDetailScreenState extends State<PartyDetailScreen> {
     );
     if (!mounted) return;
     ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(err ?? 'Sent to printer')));
+        .showSnackBar(SnackBar(content: Text(err ?? '✅ Sent to printer')));
   }
 
   Future<void> _paymentDialog({Map<String, dynamic>? payment}) async {

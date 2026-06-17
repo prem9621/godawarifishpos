@@ -43,6 +43,8 @@ class BillingProvider extends ChangeNotifier {
 
   double _shipping  = 0;
   double _packaging = 0;
+  int?   _deliveryBoyId;
+  String? _deliveryBoyName;
 
   List<BillLine> get lines             => List.unmodifiable(_lines);
   CustomerModel? get customer          => _customer;
@@ -51,6 +53,8 @@ class BillingProvider extends ChangeNotifier {
   bool           get isEditing         => _editingInvoiceId != null;
   double         get shipping          => _shipping;
   double         get packaging         => _packaging;
+  int?           get deliveryBoyId     => _deliveryBoyId;
+  String?        get deliveryBoyName   => _deliveryBoyName;
 
   double subtotal() => _lines.fold(0, (s, l) => s + l.amount);
 
@@ -161,6 +165,14 @@ class BillingProvider extends ChangeNotifier {
     _editingInvoice   = null;
     _shipping         = 0;
     _packaging        = 0;
+    _deliveryBoyId    = null;
+    _deliveryBoyName  = null;
+    notifyListeners();
+  }
+
+  void setDeliveryBoy(int? id, String? name) {
+    _deliveryBoyId = id;
+    _deliveryBoyName = name;
     notifyListeners();
   }
 
@@ -170,6 +182,8 @@ class BillingProvider extends ChangeNotifier {
     _editingInvoice   = invoice;
     _shipping         = (invoice['shipping']  as num?)?.toDouble() ?? 0;
     _packaging        = (invoice['packaging'] as num?)?.toDouble() ?? 0;
+    _deliveryBoyId    = invoice['delivery_boy_id'] as int?;
+    _deliveryBoyName  = invoice['delivery_boy_name'] as String?;
     _lines.clear();
     final items = invoice['items'] as List? ?? [];
     for (final item in items) {
@@ -287,9 +301,11 @@ class BillingProvider extends ChangeNotifier {
       'subtotal'        : sub,
       'discount'        : disc,
       'tax'             : tax,
-      'shipping'        : shipping,
-      'packaging'       : packaging,
-      'total'           : total,
+      'shipping':        shipping,
+      'packaging':       packaging,
+      'delivery_boy_id': _deliveryBoyId,
+      'delivery_boy_name': _deliveryBoyName ?? '',
+      'total':           total,
       'paid'            : paid,
       'balance'         : billBalance,
       'previous_balance': prevBal,

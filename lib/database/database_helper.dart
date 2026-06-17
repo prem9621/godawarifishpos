@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/app_constants.dart';
 
 /// Single-instance SQLite helper for Godawari Fish POS.
-/// v10: delivery_boys table added.
+/// v11: delivery_boy_id and delivery_boy_name added to invoices.
 class DatabaseHelper {
   DatabaseHelper._internal();
   static final DatabaseHelper instance = DatabaseHelper._internal();
@@ -97,6 +97,8 @@ class DatabaseHelper {
         shipping         REAL    NOT NULL DEFAULT 0,
         packaging        REAL    NOT NULL DEFAULT 0,
         total            REAL    NOT NULL DEFAULT 0,
+        delivery_boy_id  INTEGER,
+        delivery_boy_name TEXT    DEFAULT '',
         paid             REAL    NOT NULL DEFAULT 0,
         balance          REAL    NOT NULL DEFAULT 0,
         previous_balance REAL    NOT NULL DEFAULT 0,
@@ -481,9 +483,20 @@ class DatabaseHelper {
         debugPrint('Migration v10 delivery_boys: $e');
       }
     }
-    try {
-      await _createIndexes(db);
-    } catch (_) {}
+    if (oldVersion < 11) {
+      try {
+        await db.execute(
+            'ALTER TABLE ${AppConstants.tableInvoices} ADD COLUMN delivery_boy_id INTEGER');
+      } catch (e) {
+        debugPrint('Migration v11 delivery_boy_id: $e');
+      }
+      try {
+        await db.execute(
+            'ALTER TABLE ${AppConstants.tableInvoices} ADD COLUMN delivery_boy_name TEXT DEFAULT ""');
+      } catch (e) {
+        debugPrint('Migration v11 delivery_boy_name: $e');
+      }
+    }
     debugPrint('✅ DB upgrade complete');
   }
 
@@ -930,6 +943,8 @@ class DatabaseHelper {
       'tax':        (invoice['tax']       as num?)?.toDouble() ?? 0.0,
       'shipping':   (invoice['shipping']  as num?)?.toDouble() ?? 0.0,
       'packaging':  (invoice['packaging'] as num?)?.toDouble() ?? 0.0,
+      'delivery_boy_id':  invoice['delivery_boy_id'],
+      'delivery_boy_name': (invoice['delivery_boy_name'] as String?)?.trim() ?? '',
       'total':      (invoice['total']     as num?)?.toDouble() ?? 0.0,
       'paid':       (invoice['paid']      as num?)?.toDouble() ?? 0.0,
       'balance':    (invoice['balance']   as num?)?.toDouble() ?? 0.0,
@@ -1101,6 +1116,8 @@ class DatabaseHelper {
         'tax':        (invoice['tax']       as num?)?.toDouble() ?? 0.0,
         'shipping':   (invoice['shipping']  as num?)?.toDouble() ?? 0.0,
         'packaging':  (invoice['packaging'] as num?)?.toDouble() ?? 0.0,
+        'delivery_boy_id':  invoice['delivery_boy_id'],
+        'delivery_boy_name': (invoice['delivery_boy_name'] as String?)?.trim() ?? '',
         'total':      (invoice['total']     as num?)?.toDouble() ?? 0.0,
         'paid':       (invoice['paid']      as num?)?.toDouble() ?? 0.0,
         'balance':    (invoice['balance']   as num?)?.toDouble() ?? 0.0,

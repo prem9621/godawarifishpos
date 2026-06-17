@@ -26,6 +26,7 @@ class SettingsProvider extends ChangeNotifier {
   String _gstNo = '';
   String _upiId = AppConstants.defaultUpiId;
   bool _showPaymentQr = false;
+  bool _showQrCode = false;
   bool _discountEnabled = true;
   String _currencySymbol = AppConstants.defaultCurrency;
   int _dueDateDays = AppConstants.defaultDueDays;
@@ -56,6 +57,9 @@ class SettingsProvider extends ChangeNotifier {
   bool _printAmountWithDecimal = true;
   bool _printReceivedAmount = true;
   bool _printBalanceAmount = true;
+  bool _printSignature = true;
+  bool _printTerms = false;
+  String _termsAndConditions = '';
 
   int _currentStoreId = 1;
   String _currentStoreName = '';
@@ -82,6 +86,7 @@ class SettingsProvider extends ChangeNotifier {
   String get gstNo => _gstNo;
   String get upiId => _upiId;
   bool get showPaymentQr => _showPaymentQr;
+  bool get showQrCode => _showQrCode;
   bool get discountEnabled => _discountEnabled;
   String get currencySymbol => _currencySymbol;
   int get dueDateDays => _dueDateDays;
@@ -111,6 +116,9 @@ class SettingsProvider extends ChangeNotifier {
   bool get printAmountWithDecimal => _printAmountWithDecimal;
   bool get printReceivedAmount => _printReceivedAmount;
   bool get printBalanceAmount => _printBalanceAmount;
+  bool get printSignature => _printSignature;
+  bool get printTerms => _printTerms;
+  String get termsAndConditions => _termsAndConditions;
 
   int get currentStoreId => _currentStoreId;
   String get currentStoreName => _currentStoreName;
@@ -126,48 +134,36 @@ class SettingsProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _themeMode = ThemeMode.values[prefs.getInt(AppConstants.keyThemeMode) ?? 0];
     _colorThemeIndex = prefs.getInt(AppConstants.keyColorTheme) ?? 0;
-    _shopName =
-        prefs.getString(AppConstants.keyShopName) ?? AppConstants.shopName;
-    _shopAddress = prefs.getString(AppConstants.keyShopAddress) ??
-        AppConstants.shopAddress;
-    _shopPhone =
-        prefs.getString(AppConstants.keyShopPhone) ?? AppConstants.shopPhone;
-    _shopEmail =
-        prefs.getString(AppConstants.keyShopEmail) ?? AppConstants.shopEmail;
-    _invoicePrefix = prefs.getString(AppConstants.keyInvoicePrefix) ??
-        AppConstants.defaultPrefix;
+    _shopName = prefs.getString(AppConstants.keyShopName) ?? AppConstants.shopName;
+    _shopAddress = prefs.getString(AppConstants.keyShopAddress) ?? AppConstants.shopAddress;
+    _shopPhone = prefs.getString(AppConstants.keyShopPhone) ?? AppConstants.shopPhone;
+    _shopEmail = prefs.getString(AppConstants.keyShopEmail) ?? AppConstants.shopEmail;
+    _invoicePrefix = prefs.getString(AppConstants.keyInvoicePrefix) ?? AppConstants.defaultPrefix;
     _lastInvoiceNo = prefs.getInt(AppConstants.keyLastInvoiceNo) ?? 4207;
-    _purchasePrefix = prefs.getString(AppConstants.keyPurchasePrefix) ??
-        AppConstants.defaultPurchasePrefix;
+    _purchasePrefix = prefs.getString(AppConstants.keyPurchasePrefix) ?? AppConstants.defaultPurchasePrefix;
     _lastPurchaseNo = prefs.getInt(AppConstants.keyLastPurchaseNo) ?? 1000;
-    _returnPrefix = prefs.getString(AppConstants.keyReturnPrefix) ??
-        AppConstants.defaultReturnPrefix;
+    _returnPrefix = prefs.getString(AppConstants.keyReturnPrefix) ?? AppConstants.defaultReturnPrefix;
     _lastReturnNo = prefs.getInt(AppConstants.keyLastReturnNo) ?? 1000;
     _receiptTheme = prefs.getInt(AppConstants.keyReceiptTheme) ?? 5;
     _taxEnabled = prefs.getBool(AppConstants.keyTaxEnabled) ?? false;
     _taxPercent = prefs.getDouble(AppConstants.keyTaxPercent) ?? 0;
     _gstEnabled = prefs.getBool(AppConstants.keyGstEnabled) ?? false;
     _gstNo = prefs.getString(AppConstants.keyGstNo) ?? '';
-    _upiId =
-        prefs.getString(AppConstants.keyUpiId) ?? AppConstants.defaultUpiId;
+    _upiId = prefs.getString(AppConstants.keyUpiId) ?? AppConstants.defaultUpiId;
     _showPaymentQr = prefs.getBool(AppConstants.keyShowPaymentQr) ?? false;
+    _showQrCode = prefs.getBool(AppConstants.keyShowQrCode) ?? false;
     _discountEnabled = prefs.getBool(AppConstants.keyDiscountEnabled) ?? true;
-    _currencySymbol = prefs.getString(AppConstants.keyCurrencySymbol) ??
-        AppConstants.defaultCurrency;
-    _dueDateDays = prefs.getInt(AppConstants.keyDueDateDays) ??
-        AppConstants.defaultDueDays;
+    _currencySymbol = prefs.getString(AppConstants.keyCurrencySymbol) ?? AppConstants.defaultCurrency;
+    _dueDateDays = prefs.getInt(AppConstants.keyDueDateDays) ?? AppConstants.defaultDueDays;
     _bluetoothPrinter = prefs.getString(AppConstants.keyBluetoothPrinter) ?? '';
-_thermalPaperWidthMm = prefs.getInt(AppConstants.keyThermalPaperMm) ?? 80;
-if (_thermalPaperWidthMm != 58 &&
-    _thermalPaperWidthMm != 76 &&
-    _thermalPaperWidthMm != 80) {
-  _thermalPaperWidthMm = 80;
-}
+    _thermalPaperWidthMm = prefs.getInt(AppConstants.keyThermalPaperMm) ?? 80;
+    if (_thermalPaperWidthMm != 58 && _thermalPaperWidthMm != 80 && _thermalPaperWidthMm != 76) {
+      _thermalPaperWidthMm = 80;
+    }
     _receiptFontSize = prefs.getDouble('receipt_font_size') ?? 1.0;
     _printLogo = prefs.getBool('print_logo') ?? true;
     _showFooterMessage = prefs.getBool('show_footer_message') ?? true;
-    _footerMessage =
-        prefs.getString('footer_message') ?? 'Thank You Visit Again';
+    _footerMessage = prefs.getString('footer_message') ?? 'Thank You Visit Again';
     _nativeLanguagePrinting = prefs.getBool('native_language_printing') ?? true;
     _extraLinesAtPrintEnd = prefs.getInt('extra_lines_at_print_end') ?? 0;
     _numberOfCopies = prefs.getInt('number_of_copies') ?? 1;
@@ -185,10 +181,12 @@ if (_thermalPaperWidthMm != 58 &&
     _printMrp = prefs.getBool('print_mrp') ?? true;
     _printDescription = prefs.getBool('print_description') ?? true;
     _printTotalQuantity = prefs.getBool('print_total_quantity') ?? true;
-    _printAmountWithDecimal =
-        prefs.getBool('print_amount_with_decimal') ?? true;
+    _printAmountWithDecimal = prefs.getBool('print_amount_with_decimal') ?? true;
     _printReceivedAmount = prefs.getBool('print_received_amount') ?? true;
     _printBalanceAmount = prefs.getBool('print_balance_amount') ?? true;
+    _printSignature = prefs.getBool('print_signature') ?? true;
+    _printTerms = prefs.getBool('print_terms') ?? false;
+    _termsAndConditions = prefs.getString('terms_and_conditions') ?? '';
     _currentStoreId = prefs.getInt('current_store_id') ?? 1;
     _currentStoreName = prefs.getString('current_store_name') ?? '';
     _currentUserId = prefs.getInt('current_user_id') ?? 0;
@@ -213,8 +211,7 @@ if (_thermalPaperWidthMm != 58 &&
     }
   }
 
-  Future<void> switchStore(
-      {required int storeId, required String storeName}) async {
+  Future<void> switchStore({required int storeId, required String storeName}) async {
     _currentStoreId = storeId;
     _currentStoreName = storeName;
     final prefs = await SharedPreferences.getInstance();
@@ -224,10 +221,7 @@ if (_thermalPaperWidthMm != 58 &&
     notifyListeners();
   }
 
-  Future<void> loginUser(
-      {required int userId,
-      required String userName,
-      required String userRole}) async {
+  Future<void> loginUser({required int userId, required String userName, required String userRole}) async {
     _currentUserId = userId;
     _currentUserName = userName;
     _currentUserRole = userRole;
@@ -298,8 +292,7 @@ if (_thermalPaperWidthMm != 58 &&
     notifyListeners();
   }
 
-  Future<void> updateShopInfo(
-      {String? name, String? address, String? phone, String? email}) async {
+  Future<void> updateShopInfo({String? name, String? address, String? phone, String? email}) async {
     final prefs = await SharedPreferences.getInstance();
     if (name != null) {
       _shopName = name;
@@ -328,8 +321,7 @@ if (_thermalPaperWidthMm != 58 &&
     notifyListeners();
   }
 
-  Future<void> updateInvoiceSettings(
-      {String? prefix, int? dueDays, String? currency}) async {
+  Future<void> updateInvoiceSettings({String? prefix, int? dueDays, String? currency}) async {
     final prefs = await SharedPreferences.getInstance();
     if (prefix != null) {
       _invoicePrefix = prefix;
@@ -360,8 +352,7 @@ if (_thermalPaperWidthMm != 58 &&
     notifyListeners();
   }
 
-  Future<void> updateTaxSettings(
-      {bool? enabled, double? percent, bool? gstEnabled, String? gstNo}) async {
+  Future<void> updateTaxSettings({bool? enabled, double? percent, bool? gstEnabled, String? gstNo}) async {
     final prefs = await SharedPreferences.getInstance();
     if (enabled != null) {
       _taxEnabled = enabled;
@@ -396,6 +387,7 @@ if (_thermalPaperWidthMm != 58 &&
     notifyListeners();
   }
 
+  // ── FIXED: all print toggle params including showFooterMessage, printSignature, printTerms
   Future<void> updateInvoicePrintSettings({
     bool? nativeLanguagePrinting,
     int? extraLinesAtPrintEnd,
@@ -417,6 +409,9 @@ if (_thermalPaperWidthMm != 58 &&
     bool? printAmountWithDecimal,
     bool? printReceivedAmount,
     bool? printBalanceAmount,
+    bool? printSignature,
+    bool? printTerms,
+    bool? showFooterMessage,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     if (nativeLanguagePrinting != null) {
@@ -499,16 +494,35 @@ if (_thermalPaperWidthMm != 58 &&
       _printBalanceAmount = printBalanceAmount;
       await prefs.setBool('print_balance_amount', printBalanceAmount);
     }
+    if (printSignature != null) {
+      _printSignature = printSignature;
+      await prefs.setBool('print_signature', printSignature);
+    }
+    if (printTerms != null) {
+      _printTerms = printTerms;
+      await prefs.setBool('print_terms', printTerms);
+    }
+    if (showFooterMessage != null) {
+      _showFooterMessage = showFooterMessage;
+      await prefs.setBool('show_footer_message', showFooterMessage);
+    }
     notifyListeners();
   }
 
- Future<void> setThermalPaperWidthMm(int mm) async {
-  final v = (mm == 58 || mm == 76 || mm == 80) ? mm : 80;
-  _thermalPaperWidthMm = v;
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setInt(AppConstants.keyThermalPaperMm, v);
-  notifyListeners();
-}
+  Future<void> setTermsAndConditions(String value) async {
+    _termsAndConditions = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('terms_and_conditions', value);
+    notifyListeners();
+  }
+
+  Future<void> setThermalPaperWidthMm(int mm) async {
+    final v = (mm == 58 || mm == 76 || mm == 80) ? mm : 80;
+    _thermalPaperWidthMm = v;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(AppConstants.keyThermalPaperMm, v);
+    notifyListeners();
+  }
 
   Future<void> setUpiId(String id) async {
     _upiId = id;
@@ -524,9 +538,14 @@ if (_thermalPaperWidthMm != 58 &&
     notifyListeners();
   }
 
-  // ── BILL COUNTERS ──────────────────────────────────────────────────────────
-  // Fixed: queries DB to skip numbers already used by Firebase-synced invoices
+  Future<void> setShowQrCode(bool value) async {
+    _showQrCode = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(AppConstants.keyShowQrCode, value);
+    notifyListeners();
+  }
 
+  // ── BILL COUNTERS ──────────────────────────────────────────────────────────
   Future<int> getNextInvoiceNo() async {
     final db = await DatabaseHelper.instance.database;
     final rows = await db.rawQuery(
@@ -535,8 +554,7 @@ if (_thermalPaperWidthMm != 58 &&
     );
     final used = <int>{};
     for (final r in rows) {
-      final suffix =
-          (r['invoice_no'] as String? ?? '').replaceFirst(_invoicePrefix, '');
+      final suffix = (r['invoice_no'] as String? ?? '').replaceFirst(_invoicePrefix, '');
       final n = int.tryParse(suffix);
       if (n != null) used.add(n);
     }

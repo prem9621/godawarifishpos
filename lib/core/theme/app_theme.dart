@@ -42,6 +42,7 @@ class AppTheme {
         secondary: primaryBlue,
         tertiary: accentGold,
         surface: Colors.white,
+        onSurface: Colors.black87,
         // ignore: deprecated_member_use
         background: const Color(0xFFF2F6FA),
       ),

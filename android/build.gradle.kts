@@ -25,6 +25,15 @@ subprojects {
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }     
 subprojects {
+    plugins.withId("com.android.library") {
+        if (name == "blue_thermal_printer") {
+            extensions.configure<com.android.build.gradle.LibraryExtension>("android") {
+                namespace = "com.example.blue_thermal_printer"
+            }
+        }
+    }
+}
+subprojects {
     project.evaluationDependsOn(":app")
 }
 tasks.register<Delete>("clean") {

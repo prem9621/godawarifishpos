@@ -44,7 +44,7 @@ void main() async {
 
   await Future.wait([
     initializeDateFormatting('en_IN', null),
-    DatabaseHelper.instance.preWarm(),
+    if (!kIsWeb) DatabaseHelper.instance.preWarm(),
   ]);
 
   final settingsProvider = SettingsProvider();
