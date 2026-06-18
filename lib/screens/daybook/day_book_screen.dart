@@ -190,10 +190,10 @@ class _DayBookScreenState extends State<DayBookScreen> {
                     width : 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color        : Colors.white.withOpacity(0.15),
+                      color        : Colors.white.withValues(alpha: 0.15),
                       borderRadius : BorderRadius.circular(8),
                       border: Border.all(
-                          color: Colors.white.withOpacity(0.2), width: 1),
+                          color: Colors.white.withValues(alpha: 0.2), width: 1),
                     ),
                     child: const Icon(Icons.arrow_back_rounded,
                         color: Colors.white, size: 17),
@@ -204,10 +204,10 @@ class _DayBookScreenState extends State<DayBookScreen> {
                   width : 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color        : Colors.white.withOpacity(0.15),
+                    color        : Colors.white.withValues(alpha: 0.15),
                     borderRadius : BorderRadius.circular(8),
                     border: Border.all(
-                        color: Colors.white.withOpacity(0.2), width: 1),
+                        color: Colors.white.withValues(alpha: 0.2), width: 1),
                   ),
                   child: const Icon(Icons.menu_book_outlined,
                       color: Colors.white, size: 17),
@@ -224,10 +224,10 @@ class _DayBookScreenState extends State<DayBookScreen> {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color        : Colors.white.withOpacity(0.12),
+                  color        : Colors.white.withValues(alpha: 0.12),
                   borderRadius : BorderRadius.circular(8),
                   border: Border.all(
-                      color: Colors.white.withOpacity(0.2), width: 1),
+                      color: Colors.white.withValues(alpha: 0.2), width: 1),
                 ),
                 child: Text(
                   DateFormat('d MMM yyyy').format(DateTime.now()),
@@ -248,10 +248,10 @@ class _DayBookScreenState extends State<DayBookScreen> {
                   width : 34,
                   height: 34,
                   decoration: BoxDecoration(
-                    color        : Colors.white.withOpacity(0.15),
+                    color        : Colors.white.withValues(alpha: 0.15),
                     borderRadius : BorderRadius.circular(8),
                     border: Border.all(
-                        color: Colors.white.withOpacity(0.2), width: 1),
+                        color: Colors.white.withValues(alpha: 0.2), width: 1),
                   ),
                   child: const Icon(Icons.refresh_rounded,
                       color: Colors.white, size: 17),
@@ -406,7 +406,7 @@ class _DayBookScreenState extends State<DayBookScreen> {
                 border       : Border.all(color: _kBorder, width: 1),
                 boxShadow: [
                   BoxShadow(
-                    color     : Colors.black.withOpacity(0.03),
+                    color     : Colors.black.withValues(alpha: 0.03),
                     blurRadius: 6,
                     offset    : const Offset(0, 2),
                   ),
@@ -555,10 +555,10 @@ class _StatBox extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color        : Colors.white.withOpacity(0.12),
+          color        : Colors.white.withValues(alpha: 0.12),
           borderRadius : BorderRadius.circular(8),
           border: Border.all(
-              color: Colors.white.withOpacity(0.15), width: 1),
+              color: Colors.white.withValues(alpha: 0.15), width: 1),
         ),
         child: Row(children: [
           Icon(icon, color: color, size: 13),

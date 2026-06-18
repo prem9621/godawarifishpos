@@ -216,7 +216,7 @@ class _NewBillScreenState extends State<NewBillScreen>
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                        color: _kAccent.withOpacity(0.1),
+                        color: _kAccent.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10)),
                     child: const Icon(Icons.add_box_outlined,
                         color: _kAccent, size: 22)),
@@ -747,7 +747,7 @@ class _NewBillScreenState extends State<NewBillScreen>
         Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.12),
+                color: Colors.white.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.white24)),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -783,13 +783,13 @@ class _NewBillScreenState extends State<NewBillScreen>
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                   color: isPaid
-                      ? _kAccent.withOpacity(0.25)
-                      : _kOrange.withOpacity(0.25),
+                      ? _kAccent.withValues(alpha: 0.25)
+                      : _kOrange.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                       color: isPaid
-                          ? _kAccent.withOpacity(0.5)
-                          : _kOrange.withOpacity(0.5))),
+                          ? _kAccent.withValues(alpha: 0.5)
+                          : _kOrange.withValues(alpha: 0.5))),
               child: Text(method,
                   style: TextStyle(
                       color: isPaid ? const Color(0xFF81C995) : _kOrange,
@@ -806,12 +806,12 @@ class _NewBillScreenState extends State<NewBillScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: _cardDeco(
-            border: _customer != null ? _kPrimary.withOpacity(0.3) : _kBorder),
+            border: _customer != null ? _kPrimary.withValues(alpha: 0.3) : _kBorder),
         child: Row(children: [
           CircleAvatar(
               radius: 18,
               backgroundColor:
-                  _customer != null ? _kPrimary.withOpacity(0.1) : _kBg,
+                  _customer != null ? _kPrimary.withValues(alpha: 0.1) : _kBg,
               child: Icon(
                   _customer != null
                       ? Icons.person_rounded
@@ -865,7 +865,7 @@ class _NewBillScreenState extends State<NewBillScreen>
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                  color: _kPrimary.withOpacity(0.08),
+                  color: _kPrimary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8)),
               child: const Icon(Icons.calendar_today_rounded,
                   size: 16, color: _kPrimary)),
@@ -914,9 +914,9 @@ class _NewBillScreenState extends State<NewBillScreen>
       child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-              color: _kAccent.withOpacity(0.1),
+              color: _kAccent.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: _kAccent.withOpacity(0.3))),
+              border: Border.all(color: _kAccent.withValues(alpha: 0.3))),
           child: const Row(mainAxisSize: MainAxisSize.min, children: [
             Icon(Icons.add_rounded, size: 14, color: _kAccent),
             SizedBox(width: 4),
@@ -1011,9 +1011,9 @@ class _NewBillScreenState extends State<NewBillScreen>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
-                      color: _kAccent.withOpacity(0.08),
+                      color: _kAccent.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: _kAccent.withOpacity(0.3))),
+                      border: Border.all(color: _kAccent.withValues(alpha: 0.3))),
                   child: const Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(Icons.add_box_outlined, size: 16, color: _kAccent),
                     SizedBox(width: 6),
@@ -1063,7 +1063,7 @@ class _NewBillScreenState extends State<NewBillScreen>
                     boxShadow: inCart
                         ? [
                             BoxShadow(
-                                color: _kPrimary.withOpacity(0.12),
+                                color: _kPrimary.withValues(alpha: 0.12),
                                 blurRadius: 6,
                                 offset: const Offset(0, 2))
                           ]
@@ -1088,7 +1088,7 @@ class _NewBillScreenState extends State<NewBillScreen>
                               width: 16,
                               height: 16,
                               decoration: BoxDecoration(
-                                  color: _kPrimary.withOpacity(0.1),
+                                  color: _kPrimary.withValues(alpha: 0.1),
                                   shape: BoxShape.circle),
                               child: const Icon(Icons.add,
                                   size: 10, color: _kPrimary)),
@@ -1114,7 +1114,7 @@ class _NewBillScreenState extends State<NewBillScreen>
                         Text('/Kg',
                             style: TextStyle(
                                 fontSize: 9,
-                                color: _kTextGrey.withOpacity(0.7))),
+                                color: _kTextGrey.withValues(alpha: 0.7))),
                     ]),
               ),
             );
@@ -1155,9 +1155,9 @@ class _NewBillScreenState extends State<NewBillScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                    color: _kRed.withOpacity(0.08),
+                    color: _kRed.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: _kRed.withOpacity(0.2))),
+                    border: Border.all(color: _kRed.withValues(alpha: 0.2))),
                 child: const Text('Clear All',
                     style: TextStyle(
                         fontSize: 11,
@@ -1195,7 +1195,7 @@ class _NewBillScreenState extends State<NewBillScreen>
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                                color: _kPrimary.withOpacity(0.08),
+                                color: _kPrimary.withValues(alpha: 0.08),
                                 borderRadius: BorderRadius.circular(4)),
                             child: const Text('Edit',
                                 style: TextStyle(
@@ -1214,7 +1214,7 @@ class _NewBillScreenState extends State<NewBillScreen>
               Row(mainAxisSize: MainAxisSize.min, children: [
                 _QtyBtn(
                     icon: Icons.remove_rounded,
-                    bg: _kRed.withOpacity(0.08),
+                    bg: _kRed.withValues(alpha: 0.08),
                     iconColor: _kRed,
                     onTap: () {
                       if (line.qty > 0.5) {
@@ -1242,7 +1242,7 @@ class _NewBillScreenState extends State<NewBillScreen>
                 const SizedBox(width: 4),
                 _QtyBtn(
                     icon: Icons.add_rounded,
-                    bg: _kPrimary.withOpacity(0.08),
+                    bg: _kPrimary.withValues(alpha: 0.08),
                     iconColor: _kPrimary,
                     onTap: () {
                       bill.updateLine(index, qty: line.qty + 0.5);
@@ -1263,7 +1263,7 @@ class _NewBillScreenState extends State<NewBillScreen>
                       setState(() {});
                     },
                     child: Icon(Icons.close_rounded,
-                        size: 16, color: _kRed.withOpacity(0.6))),
+                        size: 16, color: _kRed.withValues(alpha: 0.6))),
               ]),
             ]),
           ),
@@ -1363,8 +1363,8 @@ class _NewBillScreenState extends State<NewBillScreen>
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                   color: _paymentMethod == 'Credit'
-                      ? _kOrange.withOpacity(0.12)
-                      : _kAccent.withOpacity(0.10),
+                      ? _kOrange.withValues(alpha: 0.12)
+                      : _kAccent.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(5)),
               child: Text(_paymentMethod,
                   style: TextStyle(
@@ -1408,7 +1408,7 @@ class _NewBillScreenState extends State<NewBillScreen>
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-                color: _kAccent.withOpacity(0.1),
+                color: _kAccent.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8)),
             child:
                 const Icon(Icons.payments_outlined, size: 16, color: _kAccent)),
@@ -1482,14 +1482,14 @@ onChanged: (_) => setState(() => _paidUserEdited = true))),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: _cardDeco(
             border: _deliveryPerson.isNotEmpty
-                ? Colors.teal.withOpacity(0.4)
+                ? Colors.teal.withValues(alpha: 0.4)
                 : _kBorder),
         child: Row(children: [
           Container(
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                  color: Colors.teal.withOpacity(0.1),
+                  color: Colors.teal.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8)),
               child: const Icon(Icons.delivery_dining_outlined,
                   size: 16, color: Colors.teal)),
@@ -1544,7 +1544,7 @@ onChanged: (_) => setState(() => _paidUserEdited = true))),
         border: Border.all(color: border ?? _kBorder),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 4,
               offset: const Offset(0, 1))
         ],
@@ -1580,7 +1580,7 @@ class _SaveBar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(color: _kCard, boxShadow: [
         BoxShadow(
-            color: Colors.black.withOpacity(0.10),
+            color: Colors.black.withValues(alpha: 0.10),
             blurRadius: 16,
             offset: const Offset(0, -4))
       ]),
@@ -1751,9 +1751,9 @@ class _PillBtn extends StatelessWidget {
   Widget build(BuildContext context) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: color.withOpacity(0.25))),
+          border: Border.all(color: color.withValues(alpha: 0.25))),
       child: Text(label,
           style: TextStyle(
               fontSize: 11, color: color, fontWeight: FontWeight.w700)));
@@ -1799,10 +1799,10 @@ class _ToggleRow extends StatelessWidget {
       child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           decoration: BoxDecoration(
-              color: isOn ? color.withOpacity(0.06) : _kCard,
+              color: isOn ? color.withValues(alpha: 0.06) : _kCard,
               borderRadius: BorderRadius.circular(12),
               border:
-                  Border.all(color: isOn ? color.withOpacity(0.3) : _kBorder)),
+                  Border.all(color: isOn ? color.withValues(alpha: 0.3) : _kBorder)),
           child: Row(children: [
             Icon(icon, size: 16, color: color),
             const SizedBox(width: 8),
@@ -1834,7 +1834,7 @@ class _AmountRow extends StatelessWidget {
       decoration: BoxDecoration(
           color: _kCard,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.2))),
+          border: Border.all(color: color.withValues(alpha: 0.2))),
       child: Row(children: [
         Icon(icon, size: 15, color: color),
         const SizedBox(width: 8),
@@ -2029,7 +2029,7 @@ class _AddItemSheetState extends State<_AddItemSheet> {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                  color: _kPrimary.withOpacity(0.1),
+                  color: _kPrimary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10)),
               child: const Icon(Icons.set_meal_rounded,
                   color: _kPrimary, size: 22)),
@@ -2049,9 +2049,9 @@ class _AddItemSheetState extends State<_AddItemSheet> {
           Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                  color: _kAccent.withOpacity(0.1),
+                  color: _kAccent.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: _kAccent.withOpacity(0.3))),
+                  border: Border.all(color: _kAccent.withValues(alpha: 0.3))),
               child: Text('Rs.${total.toStringAsFixed(0)}',
                   style: const TextStyle(
                       fontSize: 18,
@@ -2402,7 +2402,7 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
                             dense: true,
                             leading: CircleAvatar(
                                 radius: 16,
-                                backgroundColor: _kPrimary.withOpacity(0.1),
+                                backgroundColor: _kPrimary.withValues(alpha: 0.1),
                                 child: Text(
                                     (c['name'] as String)
                                         .substring(0, 1)
@@ -2424,7 +2424,7 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 3),
                                     decoration: BoxDecoration(
-                                        color: _kOrange.withOpacity(0.1),
+                                        color: _kOrange.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(6)),
                                     child: Text(
                                         'Due: Rs.${bal.toStringAsFixed(0)}',
@@ -2475,7 +2475,7 @@ class _DeliveryPickerSheet extends StatelessWidget {
         ListTile(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          tileColor: selected.isEmpty ? Colors.teal.withOpacity(0.08) : null,
+          tileColor: selected.isEmpty ? Colors.teal.withValues(alpha: 0.08) : null,
           leading: const Icon(Icons.do_not_disturb_outlined, color: _kTextGrey),
           title: const Text('None',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
@@ -2491,10 +2491,10 @@ class _DeliveryPickerSheet extends StatelessWidget {
           return ListTile(
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10)),
-            tileColor: isSel ? Colors.teal.withOpacity(0.08) : null,
+            tileColor: isSel ? Colors.teal.withValues(alpha: 0.08) : null,
             leading: CircleAvatar(
                 radius: 16,
-                backgroundColor: Colors.teal.withOpacity(0.12),
+                backgroundColor: Colors.teal.withValues(alpha: 0.12),
                 child: Text(name[0].toUpperCase(),
                     style: const TextStyle(
                         fontSize: 12,

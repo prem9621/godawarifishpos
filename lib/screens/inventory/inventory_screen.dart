@@ -207,10 +207,10 @@ class _InventoryScreenState extends State<InventoryScreen>
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                          color: Colors.white.withOpacity(0.25), width: 1),
+                          color: Colors.white.withValues(alpha: 0.25), width: 1),
                     ),
                     child: const Icon(Icons.inventory_2_outlined,
                         color: Colors.white, size: 18),
@@ -541,7 +541,7 @@ class _InventoryScreenState extends State<InventoryScreen>
                   width: 34,
                   height: 34,
                   decoration: BoxDecoration(
-                    color: selected ? _kRed.withOpacity(0.08) : _kBg,
+                    color: selected ? _kRed.withValues(alpha: 0.08) : _kBg,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child:
@@ -771,7 +771,7 @@ class _ItemCard extends StatelessWidget {
             : Border.all(color: _kBorder, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -789,10 +789,10 @@ class _ItemCard extends StatelessWidget {
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  color: catColor.withOpacity(0.1),
+                  color: catColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border:
-                      Border.all(color: catColor.withOpacity(0.2), width: 1),
+                      Border.all(color: catColor.withValues(alpha: 0.2), width: 1),
                 ),
                 child: Center(
                   child: Text(
@@ -851,7 +851,7 @@ class _ItemCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 7, vertical: 3),
                           decoration: BoxDecoration(
-                            color: catColor.withOpacity(0.08),
+                            color: catColor.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(5),
                           ),
                           child: Text(fish.category!,
@@ -1016,9 +1016,9 @@ class _ActionBtn extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.08),
+            color: color.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: color.withOpacity(0.25), width: 1),
+            border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -1350,9 +1350,9 @@ class _HeaderPill extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.12),
+          color: Colors.white.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withOpacity(0.18), width: 1),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.18), width: 1),
         ),
         child: Row(children: [
           Icon(icon, color: color, size: 14),
@@ -1400,9 +1400,9 @@ class _HeaderBtn extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
+            color: Colors.white.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.white.withOpacity(0.25), width: 1),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.25), width: 1),
           ),
           child: Icon(icon, size: 18, color: Colors.white),
         ),

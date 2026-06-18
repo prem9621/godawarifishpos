@@ -676,7 +676,7 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
                       Container(
                         padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.15),
+                            color: Colors.orange.withValues(alpha: 0.15),
                             shape: BoxShape.circle),
                         child: const Icon(Icons.add,
                             size: 9, color: Colors.orange),
@@ -781,7 +781,7 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.08),
+                        color: Colors.orange.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(6)),
                     child: Text(
                       '${line.qty % 1 == 0 ? line.qty.toInt() : line.qty.toStringAsFixed(1)} ${line.unit}',
@@ -1018,7 +1018,7 @@ class _PurchaseItemSheetState extends State<_PurchaseItemSheet> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.12),
+                color: Colors.orange.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10)),
             child: const Icon(Icons.local_shipping_outlined,
                 color: Colors.orange, size: 20),
@@ -1402,7 +1402,7 @@ class _PurchaseSummaryBar extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 12,
               offset: const Offset(0, -3))
         ],

@@ -103,13 +103,6 @@ class ThermalInvoicePrinter {
     return '$left${' ' * space}$right';
   }
 
-  static String _threeCol(String l, String c, String r, int width) {
-    final rem = width - l.length - r.length;
-    if (rem <= c.length) return _lr(l, r, width);
-    final pad = rem - c.length;
-    return '$l${' ' * (pad ~/ 2)}$c${' ' * (pad - pad ~/ 2)}$r';
-  }
-
   static String _amt(double v) => v.toStringAsFixed(2);
 
   static String _qty(double v) {
@@ -121,21 +114,21 @@ class ThermalInvoicePrinter {
   }
 
   // ── Total line: label flush-left, value flush-right ───────────────────────
-  // No leading spaces, no colon — clean Vyapar-style alignment
   static String _totalLine(String label, String value, int width) {
     final spaces = width - label.length - value.length;
     if (spaces < 1) return '$label $value';
     return '$label${' ' * spaces}$value';
   }
 
-  // ── Four-column row with fixed widths ─────────────────────────────────────
-  // Col1 (S.No): 4  |  Col2 (Item): fills  |  Col3 (Price): 10 |  Col4 (Amt): 10
+  // ── FIXED: Four-column row ─────────────────────────────────────────────────
+  // Col1 (S.No): 3  |  Col2 (Item): fills  |  Col3 (Price): 9 |  Col4 (Amt): 9
+  // Reduced col3/col4 by 1 each so item name has more breathing room
   static String _fourCol(
       String col1, String col2, String col3, String col4, int width) {
-    const c1w = 4;
-    const c3w = 10;
-    const c4w = 10;
-    final c2w = width - c1w - c3w - c4w;
+    const c1w = 3;  // S.No
+    const c3w = 9;  // Price
+    const c4w = 9;  // Amount
+    final c2w = width - c1w - c3w - c4w; // Item name (48-3-9-9 = 27 on 80mm)
 
     final c1 = col1.padRight(c1w);
     final c2 = col2.length > c2w ? col2.substring(0, c2w) : col2.padRight(c2w);
@@ -194,14 +187,9 @@ class ThermalInvoicePrinter {
         await Future.delayed(const Duration(milliseconds: 60));
       }
 
-      // Wait for printer to finish rendering the raster image
       await Future.delayed(const Duration(milliseconds: 1500));
-
-      // Feed line after raster image – required before text mode resumes
       await bt.writeBytes(Uint8List.fromList([0x0a]));
       await Future.delayed(const Duration(milliseconds: 100));
-
-      // Restore left alignment. Do NOT send ESC @ here – it resets printer mid-job.
       await bt.writeBytes(Uint8List.fromList([0x1b, 0x61, 0x00]));
       await Future.delayed(const Duration(milliseconds: 80));
     } catch (_) {
@@ -337,13 +325,11 @@ class ThermalInvoicePrinter {
       // ═════════════════════════════════════════════════════════════
       if (settings.printLogo) {
         await _printLogo(bt, width);
-        // Separator line right after logo
         await _p(bt, line);
       }
 
       // ═════════════════════════════════════════════════════════════
       // 2. SHOP NAME — only printed when there is NO logo
-      //    (logo already contains shop name & tagline)
       // ═════════════════════════════════════════════════════════════
       if (!settings.printLogo) {
         if (settings.printShopName) {
@@ -353,7 +339,7 @@ class ThermalInvoicePrinter {
       }
 
       // ═════════════════════════════════════════════════════════════
-      // 3. SHOP DETAILS (address & phone — always shown)
+      // 3. SHOP DETAILS
       // ═════════════════════════════════════════════════════════════
       if (settings.printShopAddress && settings.shopAddress.isNotEmpty) {
         await _p(bt, settings.shopAddress, align: 1);
@@ -364,7 +350,7 @@ class ThermalInvoicePrinter {
       await _p(bt, line);
 
       // ═════════════════════════════════════════════════════════════
-      // 4. INVOICE TYPE — bold, centred, uppercase
+      // 4. INVOICE TYPE
       // ═════════════════════════════════════════════════════════════
       await _p(bt, 'BILL  INVOICE', size: 1, align: 1, bold: true);
       await _p(bt, line);
@@ -391,15 +377,17 @@ class ThermalInvoicePrinter {
       // 7. ITEMS TABLE HEADER
       // ═════════════════════════════════════════════════════════════
       if (width >= 40) {
-        // 80mm — single header row, all four columns
+        // 80mm — 4-column header using same _fourCol widths
+        // Col1=3, Col2=27, Col3=9, Col4=9
         await _p(
-            bt,
-            _fourCol('#', 'Item Name', 'Price', 'Amount', width),
-            bold: true);
+          bt,
+          _fourCol('#', 'Item Name', 'Price', 'Amount', width),
+          bold: true,
+        );
       } else {
         // 58mm — two-line header
         await _p(bt, '#  Item Name', bold: true);
-        await _p(bt, '   Price      Amt', bold: true);
+        await _p(bt, _lr('   Qty@Price', 'Amt', width), bold: true);
       }
       await _p(bt, line);
 
@@ -422,53 +410,98 @@ class ThermalInvoicePrinter {
         final finalAmt = rawAmt - discAmt;
         final amt = (item['amount'] as num?)?.toDouble() ?? finalAmt;
         final unit = item['unit']?.toString() ?? 'Kg';
-        final sNo = settings.printSNo ? '${i + 1}' : '';
         totalItemsCount++;
         totalDiscAmt += discAmt;
 
         if (width >= 40) {
-          // ── 80mm: item name + qty inline ───────────────────────
-          // e.g.  "1  Bonless Fish 3Kg     450.00   1350.00"
-          final nameQty = '$name ${_qty(qty)}$unit';
+          // ── 80mm: FIXED 3-column layout ────────────────────────
+          // Line 1: S.No | Item Name only | Price | Amount
+          // Line 2:      | Qty+Unit       |       |
+          // This ensures Price & Amount are ALWAYS on same line as item name
           final sNoStr = settings.printSNo ? '${i + 1}' : '';
+
+          // Row 1: name + price + amount (NO qty in name — qty on next line)
           await _p(
+            bt,
+            _fourCol(
+              sNoStr,
+              name,                        // item name only, no qty
+              price.toStringAsFixed(2),    // price
+              _amt(rawAmt),                // amount
+              width,
+            ),
+          );
+
+          // Row 2: qty indented under name, no price/amount columns
+          await _p(
+            bt,
+            _fourCol(
+              '',
+              '  ${_qty(qty)}$unit',       // qty indented
+              '',
+              '',
+              width,
+            ),
+          );
+
+          // Discount rows (only when applicable)
+          if (discPct > 0 && discAmt > 0) {
+            await _p(
               bt,
               _fourCol(
-                sNoStr,
-                nameQty,
-                price.toStringAsFixed(2),
-                _amt(rawAmt),
+                '',
+                '  Disc.(${discPct.toStringAsFixed(0)}%)',
+                '',
+                '-${_amt(discAmt)}',
                 width,
-              ));
-          // Discount row (indented, only when applicable)
-          if (discPct > 0 && discAmt > 0) {
+              ),
+            );
             await _p(
-                bt,
-                _fourCol(
-                  '',
-                  '  Disc.(${discPct.toStringAsFixed(0)}%)',
-                  '',
-                  '-${_amt(discAmt)}',
-                  width,
-                ));
-            await _p(
-                bt,
-                _fourCol(
-                  '',
-                  '  Final Amt',
-                  '',
-                  _amt(finalAmt),
-                  width,
-                ));
+              bt,
+              _fourCol(
+                '',
+                '  Final Amt',
+                '',
+                _amt(finalAmt),
+                width,
+              ),
+            );
           }
         } else {
-          // ── 58mm ───────────────────────────────────────────────
-          final sNoPrefix = settings.printSNo ? '$sNo ' : '';
+          // ── 58mm: FIXED two-line layout ────────────────────────
+          // Line 1: S.No + Item Name
+          // Line 2: Qty@Price (left)    Amount (right) — flush aligned
+          final sNoPrefix = settings.printSNo ? '${i + 1}. ' : '';
           await _p(bt, '$sNoPrefix$name');
-          await _p(bt, '   ${_qty(qty)}$unit  @${price.toStringAsFixed(2)}  ${_amt(rawAmt)}');
+
+          // Build qty@price string and right-align amount
+          final qtyPrice = '   ${_qty(qty)}$unit@${price.toStringAsFixed(2)}';
+          final amtStr = _amt(rawAmt);
+          final sp = width - qtyPrice.length - amtStr.length;
+          final row2 = sp < 1
+              ? '$qtyPrice $amtStr'
+              : '$qtyPrice${' ' * sp}$amtStr';
+          await _p(bt, row2);
+
           if (discPct > 0 && discAmt > 0) {
-            await _p(bt, '   Disc.(${discPct.toStringAsFixed(0)}%) -${_amt(discAmt)}');
-            await _p(bt, '   Final: ${_amt(finalAmt)}');
+            final discLabel = '   Disc(${discPct.toStringAsFixed(0)}%)';
+            final discVal = '-${_amt(discAmt)}';
+            final dsp = width - discLabel.length - discVal.length;
+            await _p(
+              bt,
+              dsp < 1
+                  ? '$discLabel $discVal'
+                  : '$discLabel${' ' * dsp}$discVal',
+            );
+            const finalLabel = '   Final';
+            final finalVal = _amt(finalAmt);
+            final fsp = width - finalLabel.length - finalVal.length;
+            await _p(
+              bt,
+              fsp < 1
+                  ? '$finalLabel $finalVal'
+                  : '$finalLabel${' ' * fsp}$finalVal',
+            );
           }
         }
       }
@@ -480,14 +513,17 @@ class ThermalInvoicePrinter {
       await _p(bt, _totalLine('Total Items', '$totalItemsCount', width));
 
       if (totalDiscAmt > 0) {
-        await _p(bt,
-            _totalLine('Total Disc.', '-$sym ${_amt(totalDiscAmt)}', width));
+        await _p(
+          bt,
+          _totalLine('Total Disc.', '-$sym ${_amt(totalDiscAmt)}', width),
+        );
       }
 
       await _p(
-          bt,
-          _totalLine('Total', '$sym ${_amt(total)}', width),
-          bold: true);
+        bt,
+        _totalLine('Total', '$sym ${_amt(total)}', width),
+        bold: true,
+      );
 
       if (settings.printReceivedAmount) {
         await _p(bt, _totalLine('Received', '$sym ${_amt(paid)}', width));
@@ -498,12 +534,15 @@ class ThermalInvoicePrinter {
       }
 
       if (prevBal != 0) {
-        await _p(bt,
-            _totalLine('Previous Bal.', '$sym ${_amt(prevBal)}', width));
         await _p(
-            bt,
-            _totalLine('Current Bal.', '$sym ${_amt(currBal)}', width),
-            bold: true);
+          bt,
+          _totalLine('Previous Bal.', '$sym ${_amt(prevBal)}', width),
+        );
+        await _p(
+          bt,
+          _totalLine('Current Bal.', '$sym ${_amt(currBal)}', width),
+          bold: true,
+        );
       }
 
       await _p(bt, line);
@@ -511,22 +550,21 @@ class ThermalInvoicePrinter {
       // "You Saved" section
       if (totalDiscAmt > 0) {
         await _p(
-            bt,
-            _totalLine('You Saved', '$sym ${_amt(totalDiscAmt)}', width),
-            bold: true);
+          bt,
+          _totalLine('You Saved', '$sym ${_amt(totalDiscAmt)}', width),
+          bold: true,
+        );
         await _p(bt, line);
       }
 
       // ═════════════════════════════════════════════════════════════
-      // 10. SIGNATURE — extra blank lines for writing room
+      // 10. SIGNATURE
       // ═════════════════════════════════════════════════════════════
       if (settings.printSignature) {
-        await _p(bt, ''); // breathing space
-        await _p(bt, ''); // breathing space
-        await _p(bt, ''); // breathing space
-        // Underlines for signing
+        await _p(bt, '');
+        await _p(bt, '');
+        await _p(bt, '');
         if (width >= 40) {
-          // 80mm: longer lines with gap
           await _p(bt, _lr('___________________', '___________________', width));
         } else {
           await _p(bt, _lr('----------', '----------', width));
@@ -544,11 +582,12 @@ class ThermalInvoicePrinter {
       if (settings.showFooterMessage && settings.footerMessage.isNotEmpty) {
         await _p(bt, settings.footerMessage, align: 1);
       }
-      // Single "Thank You" — bold large
       await _p(bt, 'Thank You Visit Again', align: 1, bold: true, size: 1);
-      await _p(bt,
-          'Fresh to your kitchen - Fish, Sea food, Chicken, Mutton',
-          align: 1);
+      await _p(
+        bt,
+        'Fresh to your kitchen - Fish, Sea food, Chicken, Mutton',
+        align: 1,
+      );
     });
   }
 
@@ -581,8 +620,10 @@ class ThermalInvoicePrinter {
         await _p(bt, 'Phone: $partyPhone');
       }
       await _p(bt, 'Type : ${isSupplier ? 'Supplier' : 'Customer'}');
-      await _p(bt,
-          'Date : ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}');
+      await _p(
+        bt,
+        'Date : ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}',
+      );
       await _p(bt, line);
 
       if (ledgerRows.isNotEmpty) {
@@ -596,20 +637,24 @@ class ThermalInvoicePrinter {
           final shortDate =
               dateStr.length > 5 ? dateStr.substring(0, 5) : dateStr;
           final shortDesc = desc.length > 14 ? desc.substring(0, 14) : desc;
-          await _p(bt,
-              _lr('$shortDate $shortDesc', amount.toStringAsFixed(2), width));
+          await _p(
+            bt,
+            _lr('$shortDate $shortDesc', amount.toStringAsFixed(2), width),
+          );
         }
         await _p(bt, line);
       }
 
       await _p(
-          bt,
-          _totalLine(
-              'CLOSING BALANCE',
-              '$sym ${closingBalance.toStringAsFixed(2)}',
-              width),
-          size: 1,
-          bold: true);
+        bt,
+        _totalLine(
+          'CLOSING BALANCE',
+          '$sym ${closingBalance.toStringAsFixed(2)}',
+          width,
+        ),
+        size: 1,
+        bold: true,
+      );
       await _p(bt, dLine);
       await _p(bt, 'Powered By Godawari Fish', align: 1);
       if (settings.showFooterMessage) {

@@ -249,10 +249,10 @@ class _SaleReturnScreenState extends State<SaleReturnScreen> {
                         width : 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color        : Colors.white.withOpacity(0.15),
+                          color        : Colors.white.withValues(alpha: 0.15),
                           borderRadius : BorderRadius.circular(8),
                           border: Border.all(
-                              color: Colors.white.withOpacity(0.2), width: 1),
+                              color: Colors.white.withValues(alpha: 0.2), width: 1),
                         ),
                         child: const Icon(Icons.arrow_back_rounded,
                             color: Colors.white, size: 17),
@@ -263,7 +263,7 @@ class _SaleReturnScreenState extends State<SaleReturnScreen> {
                       width : 32,
                       height: 32,
                       decoration: BoxDecoration(
-                        color        : Colors.white.withOpacity(0.15),
+                        color        : Colors.white.withValues(alpha: 0.15),
                         borderRadius : BorderRadius.circular(8),
                       ),
                       child: const Icon(Icons.assignment_return_outlined,
@@ -283,10 +283,10 @@ class _SaleReturnScreenState extends State<SaleReturnScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color        : Colors.white.withOpacity(0.15),
+                        color        : Colors.white.withValues(alpha: 0.15),
                         borderRadius : BorderRadius.circular(8),
                         border: Border.all(
-                            color: Colors.white.withOpacity(0.2), width: 1),
+                            color: Colors.white.withValues(alpha: 0.2), width: 1),
                       ),
                       child: Text(
                         '${sr.lines.length} item${sr.lines.length == 1 ? '' : 's'}',
@@ -315,7 +315,7 @@ class _SaleReturnScreenState extends State<SaleReturnScreen> {
                   border       : Border.all(color: _kBorder),
                   boxShadow: [
                     BoxShadow(
-                        color     : Colors.black.withOpacity(0.03),
+                        color     : Colors.black.withValues(alpha: 0.03),
                         blurRadius: 4,
                         offset    : const Offset(0, 2))
                   ],
@@ -516,7 +516,7 @@ class _SaleReturnScreenState extends State<SaleReturnScreen> {
                           border       : Border.all(color: _kBorder),
                           boxShadow: [
                             BoxShadow(
-                                color     : Colors.black.withOpacity(0.03),
+                                color     : Colors.black.withValues(alpha: 0.03),
                                 blurRadius: 4,
                                 offset    : const Offset(0, 2))
                           ],

@@ -199,7 +199,7 @@ class _NavItem extends StatelessWidget {
                 color: _accentGlow,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: _accent.withOpacity(0.4),
+                  color: _accent.withValues(alpha: 0.4),
                   width: 1,
                 ),
               )

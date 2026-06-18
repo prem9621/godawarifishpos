@@ -164,7 +164,7 @@ class _DeliveryBoysScreenState extends State<DeliveryBoysScreen> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
+                              color: Colors.black.withValues(alpha: 0.04),
                               blurRadius: 6,
                               offset: const Offset(0, 2)),
                         ],
@@ -173,7 +173,7 @@ class _DeliveryBoysScreenState extends State<DeliveryBoysScreen> {
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 4),
                         leading: CircleAvatar(
-                          backgroundColor: Colors.teal.withOpacity(0.12),
+                          backgroundColor: Colors.teal.withValues(alpha: 0.12),
                           child: Text(
                             name[0].toUpperCase(),
                             style: const TextStyle(

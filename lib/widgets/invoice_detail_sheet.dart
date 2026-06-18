@@ -198,7 +198,7 @@ class _ReceiptPopupDialog extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.25),
+                        color: Colors.white.withValues(alpha: 0.25),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.check_rounded, color: Colors.white, size: 22),
@@ -225,12 +225,12 @@ class _ReceiptPopupDialog extends StatelessWidget {
                   Row(children: [
                     _headerChip('Total', '$sym${total.toStringAsFixed(0)}', Colors.white),
                     const SizedBox(width: 8),
-                    _headerChip('Paid', '$sym${paid.toStringAsFixed(0)}', Colors.white.withOpacity(0.85)),
+                    _headerChip('Paid', '$sym${paid.toStringAsFixed(0)}', Colors.white.withValues(alpha: 0.85)),
                     const SizedBox(width: 8),
                     _headerChip(
                       isPaid ? 'Settled ✓' : 'Due',
                       isPaid ? '' : '$sym${balance.toStringAsFixed(0)}',
-                      isPaid ? Colors.white.withOpacity(0.70) : Colors.red.shade100,
+                      isPaid ? Colors.white.withValues(alpha: 0.70) : Colors.red.shade100,
                     ),
                   ]),
                 ],
@@ -451,13 +451,13 @@ class _ReceiptPopupDialog extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
+          color: Colors.white.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.8), fontWeight: FontWeight.w500)),
+            Text(label, style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w500)),
             if (value.isNotEmpty)
               Text(value, maxLines: 1, overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 14, color: color, fontWeight: FontWeight.w800)),

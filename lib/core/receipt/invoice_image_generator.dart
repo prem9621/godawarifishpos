@@ -186,19 +186,19 @@ class _InvoiceImageCardState extends State<_InvoiceImageCard> {
           ],
 
           // Shop Details
-          Text(
+          const Text(
             AppConstants.shopAddress,
-            style: const TextStyle(fontSize: 10, color: Colors.black87),
+            style: TextStyle(fontSize: 10, color: Colors.black87),
           ),
           if (AppConstants.shopPhone.isNotEmpty)
-            Text(
+            const Text(
               'Ph.No.: ${AppConstants.shopPhone}',
-              style: const TextStyle(fontSize: 10, color: Colors.black87),
+              style: TextStyle(fontSize: 10, color: Colors.black87),
             ),
           if (AppConstants.shopEmail.isNotEmpty)
-            Text(
+            const Text(
               'Email: ${AppConstants.shopEmail}',
-              style: const TextStyle(fontSize: 10, color: Colors.black87),
+              style: TextStyle(fontSize: 10, color: Colors.black87),
             ),
           const SizedBox(height: 12),
 
@@ -245,14 +245,14 @@ class _InvoiceImageCardState extends State<_InvoiceImageCard> {
           Column(
             children: [
               // Header
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   children: [
-                    const SizedBox(width: 40, child: Text('#', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                    const Expanded(child: Text('Item Name', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                    const SizedBox(width: 70, child: Text('Price', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
-                    SizedBox(width: 70, child: Text('Amount', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
+                    SizedBox(width: 40, child: Text('#', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                    Expanded(child: Text('Item Name', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                    SizedBox(width: 70, child: Text('Price', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
+                    SizedBox(width: 70, child: Text('Amount', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
                   ],
                 ),
               ),

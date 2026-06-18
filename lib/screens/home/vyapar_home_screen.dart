@@ -1058,10 +1058,10 @@ class _VyaparHeader extends StatelessWidget {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                            color: Colors.white.withOpacity(0.2), width: 1)),
+                            color: Colors.white.withValues(alpha: 0.2), width: 1)),
                     child: const Icon(Icons.set_meal_rounded,
                         color: Colors.white, size: 18)),
                 const SizedBox(width: 8),
@@ -1170,10 +1170,10 @@ class _StatBox extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.12),
+            color: Colors.white.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(8),
             border:
-                Border.all(color: Colors.white.withOpacity(0.15), width: 1)),
+                Border.all(color: Colors.white.withValues(alpha: 0.15), width: 1)),
         child: Row(children: [
           Icon(icon, color: color, size: 14),
           const SizedBox(width: 5),
@@ -1220,9 +1220,9 @@ class _QuickLink extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: color.withOpacity(0.3), width: 1)),
+                border: Border.all(color: color.withValues(alpha: 0.3), width: 1)),
             child: Icon(icon, color: color, size: 22)),
         const SizedBox(height: 4),
         Text(label,
@@ -1251,9 +1251,9 @@ class _SummaryPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-          color: color.withOpacity(0.06),
+          color: color.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withOpacity(0.2))),
+          border: Border.all(color: color.withValues(alpha: 0.2))),
       child: Row(children: [
         Icon(icon, color: color, size: 15),
         const SizedBox(width: 8),
@@ -1278,8 +1278,7 @@ class _ActionBtn extends StatelessWidget {
   const _ActionBtn({
     required this.icon,
     required this.tooltip,
-    this.onTap,
-  });
+  }) : onTap = null;
 
   @override
   Widget build(BuildContext context) {

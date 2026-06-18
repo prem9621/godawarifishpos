@@ -22,14 +22,14 @@ class DashboardCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark
-        ? color.withOpacity(0.18)
-        : color.withOpacity(0.08);
+        ? color.withValues(alpha: 0.18)
+        : color.withValues(alpha: 0.08);
 
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: color.withOpacity(0.18), width: 1),
+        side: BorderSide(color: color.withValues(alpha: 0.18), width: 1),
       ),
       child: InkWell(
         onTap: onTap,

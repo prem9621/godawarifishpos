@@ -336,7 +336,7 @@ class _InvoicePrintSettingsScreenState
             decoration: BoxDecoration(
               color: _kAccentLight,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _kAccent.withOpacity(0.2)),
+              border: Border.all(color: _kAccent.withValues(alpha: 0.2)),
             ),
             child: const Row(
               children: [
@@ -394,7 +394,7 @@ class _InvoicePrintSettingsScreenState
         border: Border.all(color: _kBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),

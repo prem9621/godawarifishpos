@@ -75,7 +75,7 @@ class InvoicePdfGenerator {
 
     pdf.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat(288, double.infinity, marginAll: 16),
+        pageFormat: const PdfPageFormat(288, double.infinity, marginAll: 16),
         margin: const pw.EdgeInsets.all(16),
         build: (context) {
           return pw.Column(

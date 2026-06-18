@@ -714,7 +714,7 @@ class _PartyDetailScreenState extends State<PartyDetailScreen> {
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withOpacity(0.07),
+                  color: Colors.black.withValues(alpha: 0.07),
                   blurRadius: 10,
                   offset: const Offset(0, -2))
             ],
@@ -821,7 +821,7 @@ class _PartyInfoCard extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade100),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2))
         ],
@@ -832,7 +832,7 @@ class _PartyInfoCard extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
           decoration: BoxDecoration(
               color: c.isSupplier
-                  ? Colors.indigo.withOpacity(0.07)
+                  ? Colors.indigo.withValues(alpha: 0.07)
                   : const Color(0xFFFDE8E8),
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(12))),
@@ -970,7 +970,7 @@ class _CashCreditCard extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade100),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 6,
               offset: const Offset(0, 2))
         ],
@@ -1034,9 +1034,9 @@ class _SumBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-          color: color.withOpacity(0.07),
+          color: color.withValues(alpha: 0.07),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withOpacity(0.15))),
+          border: Border.all(color: color.withValues(alpha: 0.15))),
       child: Row(children: [
         Icon(icon, size: 16, color: color),
         const SizedBox(width: 8),
@@ -1076,7 +1076,7 @@ class _ClosingBalancePill extends StatelessWidget {
       decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withOpacity(0.3))),
+          border: Border.all(color: color.withValues(alpha: 0.3))),
       child: Row(children: [
         Icon(isDue ? Icons.warning_amber_rounded : Icons.check_circle_outline,
             color: color, size: 18),

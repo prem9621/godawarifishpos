@@ -75,10 +75,10 @@ class _ReportsScreenState extends State<ReportsScreen>
                     width : 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color        : Colors.white.withOpacity(0.15),
+                      color        : Colors.white.withValues(alpha: 0.15),
                       borderRadius : BorderRadius.circular(8),
                       border: Border.all(
-                          color: Colors.white.withOpacity(0.2), width: 1),
+                          color: Colors.white.withValues(alpha: 0.2), width: 1),
                     ),
                     child: const Icon(Icons.bar_chart_rounded,
                         color: Colors.white, size: 17),
@@ -211,7 +211,7 @@ class _SummaryTabState extends State<_SummaryTab> {
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 BoxShadow(
-                    color     : _kNavDark.withOpacity(0.25),
+                    color     : _kNavDark.withValues(alpha: 0.25),
                     blurRadius: 10,
                     offset    : const Offset(0, 4))
               ],
@@ -290,7 +290,7 @@ class _SummaryTabState extends State<_SummaryTab> {
               border       : Border.all(color: _kBorder),
               boxShadow: [
                 BoxShadow(
-                    color     : Colors.black.withOpacity(0.03),
+                    color     : Colors.black.withValues(alpha: 0.03),
                     blurRadius: 6,
                     offset    : const Offset(0, 2))
               ],
@@ -331,7 +331,7 @@ class _SummaryTabState extends State<_SummaryTab> {
               border       : Border.all(color: _kBorder),
               boxShadow: [
                 BoxShadow(
-                    color     : Colors.black.withOpacity(0.03),
+                    color     : Colors.black.withValues(alpha: 0.03),
                     blurRadius: 6,
                     offset    : const Offset(0, 2))
               ],
@@ -583,7 +583,7 @@ class _BillCard extends StatelessWidget {
         border       : Border.all(color: _kBorder),
         boxShadow: [
           BoxShadow(
-              color     : Colors.black.withOpacity(0.03),
+              color     : Colors.black.withValues(alpha: 0.03),
               blurRadius: 4,
               offset    : const Offset(0, 2))
         ],
@@ -597,7 +597,7 @@ class _BillCard extends StatelessWidget {
               width : 36,
               height: 36,
               decoration: BoxDecoration(
-                color       : statusColor.withOpacity(0.1),
+                color       : statusColor.withValues(alpha: 0.1),
                 shape       : BoxShape.circle,
               ),
               child: Center(
@@ -647,10 +647,10 @@ class _BillCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color       : statusColor.withOpacity(0.1),
+                  color       : statusColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
                   border      : Border.all(
-                      color: statusColor.withOpacity(0.3)),
+                      color: statusColor.withValues(alpha: 0.3)),
                 ),
                 child: Text(statusLabel,
                     style: TextStyle(
@@ -1049,7 +1049,7 @@ class _ExpensesTabState extends State<_ExpensesTab> {
                               border       : Border.all(color: _kBorder),
                               boxShadow: [
                                 BoxShadow(
-                                    color     : Colors.black.withOpacity(0.03),
+                                    color     : Colors.black.withValues(alpha: 0.03),
                                     blurRadius: 4,
                                     offset    : const Offset(0, 2))
                               ],
@@ -1229,7 +1229,7 @@ class _ProfitTabState extends State<_ProfitTab> {
                         border       : Border.all(color: _kBorder),
                         boxShadow: [
                           BoxShadow(
-                              color     : Colors.black.withOpacity(0.04),
+                              color     : Colors.black.withValues(alpha: 0.04),
                               blurRadius: 8,
                               offset    : const Offset(0, 3))
                         ],
@@ -1500,7 +1500,7 @@ class _StatCard extends StatelessWidget {
           border       : Border.all(color: _kBorder),
           boxShadow: [
             BoxShadow(
-                color     : Colors.black.withOpacity(0.03),
+                color     : Colors.black.withValues(alpha: 0.03),
                 blurRadius: 4,
                 offset    : const Offset(0, 2))
           ],
@@ -1510,7 +1510,7 @@ class _StatCard extends StatelessWidget {
             width : 36,
             height: 36,
             decoration: BoxDecoration(
-                color        : color.withOpacity(0.1),
+                color        : color.withValues(alpha: 0.1),
                 borderRadius : BorderRadius.circular(8)),
             child: Icon(icon, size: 17, color: color),
           ),

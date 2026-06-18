@@ -66,7 +66,7 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: vyaparRed.withOpacity(0.1),
+        indicatorColor: vyaparRed.withValues(alpha: 0.1),
         elevation: 8,
         height: 62,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
@@ -89,7 +89,7 @@ class AppTheme {
       // Cards
       cardTheme: CardThemeData(
         elevation: 1,
-        shadowColor: Colors.black.withOpacity(0.06),
+        shadowColor: Colors.black.withValues(alpha: 0.06),
         surfaceTintColor: Colors.transparent,
         color: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

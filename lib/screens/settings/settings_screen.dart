@@ -466,7 +466,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         border: Border.all(color: _kBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -656,7 +656,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               activeTrackColor: _kAccent,
               inactiveTrackColor: _kBorder,
               thumbColor: _kAccent,
-              overlayColor: _kAccent.withOpacity(0.12),
+              overlayColor: _kAccent.withValues(alpha: 0.12),
               trackHeight: 3,
             ),
             child: Slider(

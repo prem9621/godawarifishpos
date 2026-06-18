@@ -643,9 +643,9 @@ class _StatBox extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.07),
+          color: color.withValues(alpha: 0.07),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withOpacity(0.2))),
+          border: Border.all(color: color.withValues(alpha: 0.2))),
         child: Row(children: [
           Icon(icon, size: 16, color: color),
           const SizedBox(width: 6),
@@ -689,7 +689,7 @@ class _ItemGridCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: outOfStock ? Colors.red.shade100 : Colors.grey.shade100),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 4, offset: const Offset(0, 2))]),
       child: Material(
         color: Colors.transparent,
@@ -823,7 +823,7 @@ class _ItemListCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: outOfStock ? Colors.red.shade100 : Colors.grey.shade100),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 4, offset: const Offset(0, 2))]),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
