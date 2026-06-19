@@ -386,9 +386,9 @@ class _BillsTab extends StatefulWidget {
 class _BillsTabState extends State<_BillsTab> {
   bool _loading    = true;
   List<Map<String, dynamic>> _invoices = [];
-  final String _statusFilter = 'All';
-  final DateTime _from = DateTime.now().subtract(const Duration(days: 30));
-  final DateTime _to   = DateTime.now();
+  String _statusFilter = 'All';
+  DateTime _from = DateTime.now().subtract(const Duration(days: 30));
+  DateTime _to   = DateTime.now();
   final _search  = TextEditingController();
 
   @override
@@ -423,7 +423,6 @@ class _BillsTabState extends State<_BillsTab> {
         );
       }
     }
-  }
   }
 
   Future<void> _pickDate(bool isFrom) async {

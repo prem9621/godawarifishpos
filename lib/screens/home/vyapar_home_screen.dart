@@ -3,8 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/printing/thermal_invoice_printer.dart';
-import '../../core/receipt/invoice_receipt_pdf.dart';
+import '../../core/receipt/thermal_invoice_printer.dart';
+import '../../core/receipt/invoice_pdf_generator.dart';
 import '../../core/theme/app_theme.dart';
 import '../../database/database_helper.dart';
 import '../../models/customer_model.dart';
@@ -133,7 +133,7 @@ class _VyaparHomeScreenState extends State<VyaparHomeScreen>
       final items = rawItems is List
           ? rawItems.map((e) => Map<String, dynamic>.from(e as Map)).toList()
           : <Map<String, dynamic>>[];
-      final bytes = await InvoiceReceiptPdf.build(invoice: inv, items: items, settings: settings);
+      final bytes = await InvoicePdfGenerator.build(invoice: inv, items: items, settings: settings);
       if (!mounted) return;
       final name = inv['invoice_no'] as String? ?? 'bill';
       await Printing.sharePdf(bytes: bytes, filename: '$name.pdf');

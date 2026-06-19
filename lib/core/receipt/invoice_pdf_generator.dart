@@ -11,6 +11,19 @@ import '../../core/constants/app_constants.dart';
 import '../../providers/settings_provider.dart';
 
 class InvoicePdfGenerator {
+  static Future<Uint8List> build({
+    required Map<String, dynamic> invoice,
+    required List<Map<String, dynamic>> items,
+    required SettingsProvider settings,
+  }) async {
+    final pdf = await _generatePdf(
+      invoice: invoice,
+      items: items,
+      settings: settings,
+    );
+    return await pdf.save();
+  }
+
   static Future<void> shareInvoicePdf({
     required Map<String, dynamic> invoice,
     required List<Map<String, dynamic>> items,
