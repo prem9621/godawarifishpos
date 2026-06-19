@@ -2,13 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/theme/app_theme.dart';
+import '../../providers/customer_provider.dart';
+import '../../providers/inventory_provider.dart';
 import '../../providers/shell_provider.dart';
-import '../../services/firebase_sync_service.dart';
+import '../billing/new_bill_screen.dart';
 import '../dashboard/dashboard_screen.dart';
-import '../home/vyapar_home_screen.dart';
-import '../inventory/inventory_screen.dart';
+import '../daybook/day_book_screen.dart';
+import '../items/items_screen.dart';
+import '../parties/parties_screen.dart';
+import '../purchase/purchase_screen.dart';
 import '../reports/reports_screen.dart';
+import '../return/sale_return_screen.dart';
 import '../settings/settings_screen.dart';
+import 'vyapar_home_screen.dart';
 
 class MainShellScreen extends StatefulWidget {
   const MainShellScreen({super.key});
@@ -17,234 +24,265 @@ class MainShellScreen extends StatefulWidget {
   State<MainShellScreen> createState() => _MainShellScreenState();
 }
 
-class _MainShellScreenState extends State<MainShellScreen>
-    with TickerProviderStateMixin {
-  late final List<AnimationController> _iconControllers;
-  late final List<Animation<double>> _iconScales;
-  late final List<bool> _tabLoaded;
-
-  static const _tabs = [
-    _TabMeta(Icons.dashboard_rounded, Icons.dashboard_outlined, 'Dashboard'),
-    _TabMeta(Icons.receipt_long_rounded, Icons.receipt_long_outlined, 'Sales'),
-    _TabMeta(Icons.inventory_2_rounded, Icons.inventory_2_outlined, 'Items'),
-    _TabMeta(Icons.bar_chart_rounded, Icons.bar_chart_outlined, 'Reports'),
-    _TabMeta(Icons.settings_rounded, Icons.settings_outlined, 'Settings'),
-  ];
+class _MainShellScreenState extends State<MainShellScreen> {
+  static const _titles = ['Home', 'Dashboard', 'Items', 'Reports'];
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  DateTime? _lastBackPress;
 
   @override
   void initState() {
     super.initState();
-
-    // ── Firebase → ShellProvider wiring (logic unchanged) ──────────────────
-    FirebaseSyncService.instance.onRemoteDataChanged = () {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<ShellProvider>().bumpHomeRefresh();
-      debugPrint('🔄 Remote data changed — UI refreshed');
-    };
-
-    // ── Icon bounce controllers ─────────────────────────────────────────────
-    _iconControllers = List.generate(
-      _tabs.length,
-      (_) => AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 300),
-      ),
-    );
-    _iconScales = _iconControllers
-        .map((c) => Tween<double>(begin: 1.0, end: 1.25).animate(
-              CurvedAnimation(parent: c, curve: Curves.elasticOut),
-            ))
-        .toList();
-    _tabLoaded = List<bool>.filled(_tabs.length, false)..[1] = true;
+      context.read<InventoryProvider>().loadItems();
+      context.read<CustomerProvider>().loadCustomers();
+    });
   }
 
-  @override
-  void dispose() {
-    FirebaseSyncService.instance.onRemoteDataChanged = null;
-    for (final c in _iconControllers) {
-      c.dispose();
-    }
-    super.dispose();
+  void _open(Widget screen) {
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
   }
 
-  void _onTabTapped(int index, ShellProvider shell) {
-    if (shell.currentIndex == index) return;
-    HapticFeedback.selectionClick();
-    _iconControllers[index].forward(from: 0);
-    _tabLoaded[index] = true;
-    shell.setIndex(index);
+  Future<void> _openNewSale() async {
+    await Navigator.of(context).push<void>(MaterialPageRoute<void>(builder: (_) => const NewBillScreen()));
+    if (!mounted) return;
+    context.read<ShellProvider>().bumpHomeRefresh();
   }
 
-  static const _pages = [
-    DashboardScreen(),
-    VyaparHomeScreen(),
-    InventoryScreen(),
-    ReportsScreen(),
-    SettingsScreen(),
-  ];
+  int _barSelectedIndex(int shellIndex) => shellIndex;
+
+  void _onBarSelected(BuildContext context, ShellProvider shell, int barIndex) {
+    shell.setIndex(barIndex);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final shell = context.watch<ShellProvider>();
-    return Scaffold(
-      extendBody: false,
-      body: IndexedStack(
-        index: shell.currentIndex,
-        children: List.generate(
-          _pages.length,
-          (i) => _tabLoaded[i] ? _pages[i] : const SizedBox.shrink(),
-        ),
-      ),
-      bottomNavigationBar: _ShellNavBar(
-        currentIndex: shell.currentIndex,
-        tabs: _tabs,
-        iconScales: _iconScales,
-        onTap: (i) => _onTabTapped(i, shell),
-      ),
-    );
-  }
-}
+    return Consumer<ShellProvider>(
+      builder: (context, shell, _) {
+        final idx = shell.currentIndex;
+        final isHome = idx == 0;
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  NAV BAR
-// ─────────────────────────────────────────────────────────────────────────────
-class _ShellNavBar extends StatelessWidget {
-  final int currentIndex;
-  final List<_TabMeta> tabs;
-  final List<Animation<double>> iconScales;
-  final ValueChanged<int> onTap;
-
-  const _ShellNavBar({
-    required this.currentIndex,
-    required this.tabs,
-    required this.iconScales,
-    required this.onTap,
-  });
-
-  // Brand colors matching VyaparHomeScreen
-  static const _navyDark = Color(0xFF1A237E);
-  static const _navyMid = Color(0xFF283593);
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_navyDark, _navyMid],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x55000000),
-            blurRadius: 24,
-            offset: Offset(0, -4),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 64,
-          child: Row(
-            children: List.generate(tabs.length, (i) {
-              final selected = i == currentIndex;
-              final tab = tabs[i];
-              return Expanded(
-                child: _NavItem(
-                  meta: tab,
-                  selected: selected,
-                  scale: iconScales[i],
-                  onTap: () => onTap(i),
-                ),
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            final nav = Navigator.of(context);
+            if (nav.canPop()) {
+              nav.pop();
+              return;
+            }
+            final now = DateTime.now();
+            if (_lastBackPress == null || now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
+              _lastBackPress = now;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Press back again to exit app')),
               );
-            }),
+              return;
+            }
+            SystemNavigator.pop();
+          },
+          child: Scaffold(
+            key: _scaffoldKey,
+            drawer: _buildDrawer(shell),
+            appBar: isHome
+                ? null
+                : AppBar(
+                    leading: IconButton(
+                      icon: const Icon(Icons.menu_rounded),
+                      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                    ),
+                    title: Text(_titles[idx]),
+                    centerTitle: true,
+                    actions: [
+                      IconButton(
+                        tooltip: 'Settings',
+                        icon: const Icon(Icons.settings_outlined),
+                        onPressed: () => _open(const SettingsScreen()),
+                      ),
+                    ],
+                  ),
+            body: IndexedStack(
+              index: idx,
+              children: const [
+                VyaparHomeScreen(),
+                DashboardScreen(),
+                ItemsScreen(),
+                ReportsScreen(),
+              ],
+            ),
+            floatingActionButton: isHome ? _buildFab() : null,
+            floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+            bottomNavigationBar: NavigationBar(
+              height: 66,
+              selectedIndex: _barSelectedIndex(idx),
+              onDestinationSelected: (i) => _onBarSelected(context, shell, i),
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home_rounded),
+                  label: 'Home',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.bar_chart_outlined),
+                  selectedIcon: Icon(Icons.bar_chart_rounded),
+                  label: 'Dashboard',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.inventory_2_outlined),
+                  selectedIcon: Icon(Icons.inventory_2_rounded),
+                  label: 'Items',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.assessment_outlined),
+                  selectedIcon: Icon(Icons.assessment_rounded),
+                  label: 'Reports',
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildFab() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Material(
+        elevation: 6,
+        shadowColor: AppTheme.vyaparRed.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(28),
+        color: AppTheme.vyaparRed,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(28),
+          onTap: _openNewSale,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.add_shopping_cart_rounded, color: Colors.white, size: 20),
+                SizedBox(width: 10),
+                Text(
+                  'New Sale',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  NAV ITEM
-// ─────────────────────────────────────────────────────────────────────────────
-class _NavItem extends StatelessWidget {
-  final _TabMeta meta;
-  final bool selected;
-  final Animation<double> scale;
-  final VoidCallback onTap;
-
-  static const _accent = Color(0xFFE31E24);
-  static const _accentGlow = Color(0x33E31E24);
-  static const _white70 = Color(0xB3FFFFFF);
-
-  const _NavItem({
-    required this.meta,
-    required this.selected,
-    required this.scale,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutCubic,
-        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-        decoration: selected
-            ? BoxDecoration(
-                color: _accentGlow,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: _accent.withValues(alpha: 0.4),
-                  width: 1,
-                ),
-              )
-            : const BoxDecoration(),
+  // ── Clean drawer, styled to match the reference design ─────────────────
+  Widget _buildDrawer(ShellProvider shell) {
+    return Drawer(
+      backgroundColor: Colors.white,
+      width: 290,
+      child: SafeArea(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Animated icon with bounce scale
-            ScaleTransition(
-              scale: scale,
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                transitionBuilder: (child, anim) =>
-                    ScaleTransition(scale: anim, child: child),
-                child: Icon(
-                  selected ? meta.activeIcon : meta.icon,
-                  key: ValueKey(selected),
-                  size: selected ? 22 : 20,
-                  color: selected ? _accent : _white70,
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+              child: Row(children: [
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryBlue,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.set_meal_rounded, color: Colors.white, size: 24),
                 ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Godawari Fish',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                      Text('Business menu',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
+                    ],
+                  ),
+                ),
+              ]),
+            ),
+            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                children: [
+                  _DrawerItem(
+                    icon: Icons.add_shopping_cart_outlined,
+                    label: 'New sale',
+                    onTap: () { Navigator.pop(context); _openNewSale(); },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.shopping_bag_outlined,
+                    label: 'Purchase bill',
+                    onTap: () { Navigator.pop(context); _open(const PurchaseScreen()); },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.undo_outlined,
+                    label: 'Sale return',
+                    onTap: () { Navigator.pop(context); _open(const SaleReturnScreen()); },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.menu_book_outlined,
+                    label: 'Day book',
+                    onTap: () { Navigator.pop(context); _open(const DayBookScreen()); },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.groups_outlined,
+                    label: 'Parties',
+                    onTap: () { Navigator.pop(context); _open(const PartiesScreen()); },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.inventory_2_outlined,
+                    label: 'Items',
+                    onTap: () { Navigator.pop(context); shell.setIndex(2); },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.assessment_outlined,
+                    label: 'Reports',
+                    onTap: () { Navigator.pop(context); shell.setIndex(3); },
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                    child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+                  ),
+                  _DrawerItem(
+                    icon: Icons.settings_outlined,
+                    label: 'Settings',
+                    onTap: () { Navigator.pop(context); _open(const SettingsScreen()); },
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 3),
-            // Label
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
-              style: TextStyle(
-                fontSize: selected ? 10 : 9.5,
-                fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
-                color: selected ? _accent : _white70,
-                letterSpacing: selected ? 0.2 : 0,
-              ),
-              child: Text(meta.label),
-            ),
-            // Active dot indicator
-            const SizedBox(height: 2),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOutBack,
-              width: selected ? 18 : 0,
-              height: 2.5,
-              decoration: BoxDecoration(
-                color: _accent,
-                borderRadius: BorderRadius.circular(2),
-              ),
+            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(children: [
+                Container(
+                  width: 32, height: 32,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE3F2FD),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.storefront_rounded, color: AppTheme.primaryBlue, size: 18),
+                ),
+                const SizedBox(width: 10),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Godawari Fish POS',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                    Text('v1.0', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+                  ],
+                ),
+              ]),
             ),
           ],
         ),
@@ -253,12 +291,54 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  DATA CLASS
-// ─────────────────────────────────────────────────────────────────────────────
-class _TabMeta {
-  final IconData activeIcon;
+// ──────────────────────────────────────────────────────────────────────────
+//  DRAWER ITEM — rounded pill highlight on tap, like the reference design
+// ──────────────────────────────────────────────────────────────────────────
+class _DrawerItem extends StatelessWidget {
   final IconData icon;
   final String label;
-  const _TabMeta(this.activeIcon, this.icon, this.label);
+  final VoidCallback onTap;
+  final bool selected;
+
+  const _DrawerItem({
+    required this.icon, required this.label, required this.onTap, this.selected = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Material(
+        color: selected ? AppTheme.primaryBlue.withOpacity(0.08) : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            child: Row(children: [
+              Icon(icon, size: 21, color: selected ? AppTheme.primaryBlue : const Color(0xFF475569)),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(label,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                      color: selected ? AppTheme.primaryBlue : const Color(0xFF1E293B),
+                    )),
+              ),
+              if (selected)
+                Container(
+                  width: 4, height: 18,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryBlue,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
 }

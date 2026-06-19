@@ -1,29 +1,17 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../database/database_helper.dart';
 import '../../models/customer_model.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/shell_provider.dart';
-import '../../screens/billing/new_bill_screen.dart';
+import '../billing/new_bill_screen.dart';
 import '../daybook/day_book_screen.dart';
 import '../parties/parties_screen.dart';
 import '../purchase/purchase_screen.dart';
 import '../return/sale_return_screen.dart';
-
-// â”€â”€ Vyapar color palette â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const _kDark = Color(0xFF1A237E); // navy header (matches nav + home)
-const _kMid = Color(0xFF283593);
-const _kPrimary = Color(0xFF1565C0); // primary blue actions
-const _kRed = Color(0xFFE31E24); // Vyapar accent red
-const _kBg = Color(0xFFF2F6FA); // page background
-const _kCard = Colors.white;
-const _kBorder = Color(0xFFEEF1F6);
-const _kText1 = Color(0xFF111827);
-const _kText2 = Color(0xFF6B7280);
-const _kText3 = Color(0xFF9CA3AF);
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -32,125 +20,63 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen>
-    with SingleTickerProviderStateMixin {
+class _DashboardScreenState extends State<DashboardScreen> {
   final _db = DatabaseHelper.instance;
   Future<Map<String, dynamic>>? _statsFuture;
-  int _lastHomeRefresh = 0;
-  late AnimationController _animController;
-  late Animation<double> _fadeAnim;
-  late Animation<Offset> _slideAnim;
 
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 550),
-    );
-    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.05),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
-
-    _statsFuture = _loadStats().then((v) {
-      _animController.forward();
-      return v;
-    });
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final n = context.watch<ShellProvider>().homeRefreshNonce;
-    if (n != _lastHomeRefresh) {
-      _lastHomeRefresh = n;
-      _statsFuture = _loadStats();
-    }
-  }
-
-  @override
-  void dispose() {
-    _animController.dispose();
-    super.dispose();
+    _statsFuture = _loadStats();
   }
 
   Future<Map<String, dynamic>> _loadStats() async {
-    final dash = await _db.getDashboardStats();
-    final toReceive =
-        await _db.getSumBalanceForPartyType(CustomerModel.typeCustomer);
-    final toPay =
-        await _db.getSumBalanceForPartyType(CustomerModel.typeSupplier);
-    final stock = await _db.getTotalStockQuantity();
-    final monthPurchase = await _db.getMonthPurchaseTotal();
-    final monthExpense = await _db.getMonthExpenseTotal();
-    final recent = await _db.getDayBook();
-    return {
-      ...dash,
-      'to_receive': toReceive,
-      'to_pay': toPay,
-      'stock_total': stock,
-      'month_purchase': monthPurchase,
-      'month_expense': monthExpense,
-      'recent': recent.take(5).toList(),
-    };
-  }
-
-  List<Map<String, dynamic>> _asMapList(Object? value) {
-    if (value is! Iterable) return const [];
-    return value
-        .whereType<Map>()
-        .map((row) => Map<String, dynamic>.from(row))
-        .toList();
+    try {
+      final dash = await _db.getDashboardStats();
+      final toReceive = await _db.getSumBalanceForPartyType(CustomerModel.typeCustomer);
+      final toPay = await _db.getSumBalanceForPartyType(CustomerModel.typeSupplier);
+      final stock = await _db.getTotalStockQuantity();
+      final monthPurchase = await _db.getMonthPurchaseTotal();
+      final monthExpense = await _db.getMonthExpenseTotal();
+      return {
+        ...dash,
+        'to_receive': toReceive,
+        'to_pay': toPay,
+        'stock_total': stock,
+        'month_purchase': monthPurchase,
+        'month_expense': monthExpense,
+      };
+    } catch (e) {
+      debugPrint('Dashboard load error: $e');
+      return {};
+    }
   }
 
   Future<void> _refresh() async {
-    HapticFeedback.lightImpact();
-    _animController.reset();
-    setState(() {
-      _statsFuture = _loadStats().then((v) {
-        _animController.forward();
-        return v;
-      });
-    });
-    await _statsFuture;
+    final future = _loadStats();
+    setState(() => _statsFuture = future);
+    await future;
   }
 
-  void _go(Widget screen) => Navigator.of(context)
-      .push(MaterialPageRoute<void>(builder: (_) => screen));
-
-  String _greeting() {
-    final h = DateTime.now().hour;
-    if (h < 12) return 'Good Morning';
-    if (h < 17) return 'Good Afternoon';
-    return 'Good Evening';
-  }
-
-  String _greetEmoji() {
-    final h = DateTime.now().hour;
-    if (h < 12) return 'â˜€ï¸';
-    if (h < 17) return 'ðŸŒ¤ï¸';
-    return 'ðŸŒ™';
-  }
+  void _go(Widget screen) =>
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
 
   @override
   Widget build(BuildContext context) {
     final sym = context.watch<SettingsProvider>().currencySymbol;
-    final shopName = context.watch<SettingsProvider>().shopName;
     final now = DateTime.now();
-    final dateStr = DateFormat('EEE, d MMM yyyy').format(now);
+    final dateStr = DateFormat('EEEE, d MMM yyyy').format(now);
 
     return Scaffold(
-      backgroundColor: _kBg,
+      backgroundColor: const Color(0xFFF2F6FC),
       body: RefreshIndicator(
-        color: _kRed,
+        color: AppTheme.primaryBlue,
         onRefresh: _refresh,
         child: FutureBuilder<Map<String, dynamic>>(
           future: _statsFuture,
           builder: (context, snap) {
-            final loading = snap.connectionState == ConnectionState.waiting &&
-                !snap.hasData;
+            final loading = snap.connectionState == ConnectionState.waiting && !snap.hasData;
+            final hasError = snap.hasError;
             final d = snap.data ?? {};
 
             final todaySales = (d['today_total'] as num?)?.toDouble() ?? 0;
@@ -161,108 +87,64 @@ class _DashboardScreenState extends State<DashboardScreen>
             final toPay = (d['to_pay'] as num?)?.toDouble() ?? 0;
             final stock = (d['stock_total'] as num?)?.toDouble() ?? 0;
             final custCount = (d['customer_count'] as num?)?.toInt() ?? 0;
-            final monthPurchase =
-                (d['month_purchase'] as num?)?.toDouble() ?? 0;
+            final monthPurchase = (d['month_purchase'] as num?)?.toDouble() ?? 0;
             final monthExpense = (d['month_expense'] as num?)?.toDouble() ?? 0;
             final profit = monthSales - monthPurchase - monthExpense;
-            final recentTxns = _asMapList(d['recent']);
 
             return CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
-                // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                SliverToBoxAdapter(
-                  child: _buildHeader(
-                    shopName: shopName,
-                    dateStr: dateStr,
-                    greeting: _greeting(),
-                    greetEmoji: _greetEmoji(),
-                  ),
-                ),
+                SliverToBoxAdapter(child: _buildTopBar(dateStr)),
 
                 if (loading)
-                  const SliverFillRemaining(
-                    child: Center(
-                      child: CircularProgressIndicator(
-                          color: _kRed, strokeWidth: 2.5),
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.all(60),
+                      child: Center(child: CircularProgressIndicator()),
                     ),
                   )
-                else
+                else if (hasError)
+                  SliverToBoxAdapter(child: _buildErrorState())
+                else ...[
                   SliverToBoxAdapter(
-                    child: FadeTransition(
-                      opacity: _fadeAnim,
-                      child: SlideTransition(
-                        position: _slideAnim,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // â”€â”€ Today Hero â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
-                              child: _TodayHeroCard(
-                                todaySales: todaySales,
-                                todayPaid: todayPaid,
-                                todayCount: todayCount,
-                                sym: sym,
-                              ),
-                            ),
-
-                            // â”€â”€ Section: Stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                            _SectionLabel(
-                                title: 'Overview', onRefresh: _refresh),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
-                              child: _buildStatsRow(
-                                toReceive: toReceive,
-                                toPay: toPay,
-                                stock: stock,
-                                custCount: custCount,
-                                sym: sym,
-                              ),
-                            ),
-
-                            // â”€â”€ Month Summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                            _SectionLabel(
-                                title: DateFormat('MMMM yyyy')
-                                    .format(DateTime.now())),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
-                              child: _MonthSummaryCard(
-                                monthSales: monthSales,
-                                monthPurchase: monthPurchase,
-                                monthExpense: monthExpense,
-                                profit: profit,
-                                sym: sym,
-                              ),
-                            ),
-
-                            // â”€â”€ Quick Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                            const _SectionLabel(title: 'Quick Actions'),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
-                              child: _buildQuickActions(),
-                            ),
-
-                            // â”€â”€ Recent Transactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                            if (recentTxns.isNotEmpty) ...[
-                              const _SectionLabel(title: 'Recent Activity'),
-                              Padding(
-                                padding:
-                                    const EdgeInsets.fromLTRB(14, 0, 14, 0),
-                                child: _RecentTransactions(
-                                  txns: recentTxns,
-                                  sym: sym,
-                                  onViewAll: () => _go(const DayBookScreen()),
-                                ),
-                              ),
-                            ],
-
-                            const SizedBox(height: 110),
-                          ],
-                        ),
+                    child: _TodayHeroCard(
+                      todaySales: todaySales, todayPaid: todayPaid,
+                      todayCount: todayCount, sym: sym,
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                    sliver: SliverToBoxAdapter(
+                      child: _buildStatsGrid(
+                        toReceive: toReceive, toPay: toPay,
+                        stock: stock, monthSales: monthSales, sym: sym,
                       ),
                     ),
                   ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    sliver: SliverToBoxAdapter(
+                      child: _MonthProfitCard(
+                        monthSales: monthSales, monthPurchase: monthPurchase,
+                        monthExpense: monthExpense, profit: profit, sym: sym,
+                      ),
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    sliver: SliverToBoxAdapter(
+                      child: _InfoBanner(
+                        icon: Icons.groups_outlined,
+                        text: '$custCount registered parties · ${stock.toStringAsFixed(1)} Kg total stock',
+                      ),
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    sliver: SliverToBoxAdapter(child: _buildQuickActions()),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                ],
               ],
             );
           },
@@ -271,1100 +153,490 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // â”€â”€ HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  Widget _buildHeader({
-    required String shopName,
-    required String dateStr,
-    required String greeting,
-    required String greetEmoji,
-  }) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_kDark, _kMid],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      child: SafeArea(
-        bottom: false,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Shop avatar
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.storefront_rounded,
-                  color: Colors.white, size: 20),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(greeting,
-                          style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white70)),
-                      const SizedBox(width: 4),
-                      Text(greetEmoji, style: const TextStyle(fontSize: 11)),
-                    ],
-                  ),
-                  const SizedBox(height: 1),
-                  Text(
-                    shopName.isNotEmpty ? shopName : 'Godawari Fish POS',
-                    style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            // Date chip + refresh
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(dateStr,
-                    style: const TextStyle(
-                        fontSize: 10,
-                        color: Colors.white60,
-                        fontWeight: FontWeight.w500)),
-                const SizedBox(height: 6),
-                GestureDetector(
-                  onTap: _refresh,
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.25), width: 1),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.refresh_rounded,
-                            size: 12, color: Colors.white),
-                        SizedBox(width: 4),
-                        Text('Refresh',
-                            style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white)),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // â”€â”€ STATS ROW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  Widget _buildStatsRow({
-    required double toReceive,
-    required double toPay,
-    required double stock,
-    required int custCount,
-    required String sym,
-  }) {
-    return Row(
-      children: [
-        Expanded(
-          child: _MiniStatCard(
-            label: 'To Receive',
-            value: _fmtAmt(toReceive),
-            icon: Icons.call_received_rounded,
-            color: const Color(0xFFF59E0B),
-            bgColor: const Color(0xFFFFFBEB),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _MiniStatCard(
-            label: 'To Pay',
-            value: _fmtAmt(toPay),
-            icon: Icons.call_made_rounded,
-            color: const Color(0xFF8B5CF6),
-            bgColor: const Color(0xFFF5F3FF),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _MiniStatCard(
-            label: 'Stock',
-            value: '${stock.toStringAsFixed(1)}kg',
-            icon: Icons.scale_rounded,
-            color: const Color(0xFF10B981),
-            bgColor: const Color(0xFFECFDF5),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _MiniStatCard(
-            label: 'Parties',
-            value: '$custCount',
-            icon: Icons.groups_rounded,
-            color: _kPrimary,
-            bgColor: const Color(0xFFEFF6FF),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // â”€â”€ QUICK ACTIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  Widget _buildQuickActions() {
-    final actions = [
-      _QAction(
-        icon: Icons.receipt_long_rounded,
-        label: 'New Bill',
-        gradient: [const Color(0xFF1D4ED8), const Color(0xFF3B82F6)],
-        onTap: () => _go(const NewBillScreen()),
-      ),
-      _QAction(
-        icon: Icons.local_shipping_outlined,
-        label: 'Purchase',
-        gradient: [const Color(0xFF065F46), const Color(0xFF10B981)],
-        onTap: () => _go(const PurchaseScreen()),
-      ),
-      _QAction(
-        icon: Icons.assignment_return_outlined,
-        label: 'Return',
-        gradient: [const Color(0xFF92400E), const Color(0xFFF59E0B)],
-        onTap: () => _go(const SaleReturnScreen()),
-      ),
-      _QAction(
-        icon: Icons.menu_book_outlined,
-        label: 'Day Book',
-        gradient: [const Color(0xFF5B21B6), const Color(0xFF8B5CF6)],
-        onTap: () => _go(const DayBookScreen()),
-      ),
-      _QAction(
-        icon: Icons.people_alt_outlined,
-        label: 'Parties',
-        gradient: [const Color(0xFF0E7490), const Color(0xFF06B6D4)],
-        onTap: () => _go(const PartiesScreen()),
-      ),
-      _QAction(
-        icon: Icons.inventory_2_outlined,
-        label: 'Items',
-        gradient: [const Color(0xFF1D4ED8), const Color(0xFF60A5FA)],
-        onTap: () => context.read<ShellProvider>().setIndex(2),
-      ),
-      _QAction(
-        icon: Icons.bar_chart_rounded,
-        label: 'Reports',
-        gradient: [const Color(0xFF9F1239), const Color(0xFFF43F5E)],
-        onTap: () => context.read<ShellProvider>().setIndex(3),
-      ),
-    ];
-
-    return Column(
-      children: [
-        _ActionRow(actions: actions.take(4).toList()),
-        const SizedBox(height: 8),
-        _ActionRow(actions: actions.skip(4).toList()),
-      ],
-    );
-  }
-
-  String _fmtAmt(double v) {
-    if (v >= 100000) return '${(v / 100000).toStringAsFixed(1)}L';
-    if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}K';
-    return v.toStringAsFixed(0);
-  }
-}
-
-// â”€â”€ SECTION LABEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-class _SectionLabel extends StatelessWidget {
-  final String title;
-  final VoidCallback? onRefresh;
-  const _SectionLabel({required this.title, this.onRefresh});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildErrorState() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 18, 14, 10),
+      padding: const EdgeInsets.all(40),
+      child: Column(children: [
+        Icon(Icons.cloud_off_rounded, size: 40, color: Colors.grey.shade300),
+        const SizedBox(height: 12),
+        Text('Could not load dashboard data',
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
+        const SizedBox(height: 12),
+        TextButton.icon(
+          onPressed: _refresh,
+          icon: const Icon(Icons.refresh_rounded, size: 16),
+          label: const Text('Retry'),
+        ),
+      ]),
+    );
+  }
+
+  // ─── TOP BAR ────────────────────────────────────────────────────────────
+  Widget _buildTopBar(String dateStr) {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Row(
         children: [
-          // Left accent bar â€” Vyapar style
-          Container(
-            width: 3,
-            height: 14,
-            decoration: BoxDecoration(
-              color: _kRed,
-              borderRadius: BorderRadius.circular(2),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Dashboard', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 2),
+              Text(dateStr, style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+            ],
+          ),
+          const Spacer(),
+          IconButton(
+            onPressed: _refresh,
+            icon: const Icon(Icons.refresh_rounded, size: 20),
+            tooltip: 'Refresh',
+            style: IconButton.styleFrom(
+              backgroundColor: const Color(0xFFE3F2FD),
+              foregroundColor: AppTheme.primaryBlue,
             ),
           ),
-          const SizedBox(width: 8),
-          Text(title,
-              style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: _kText1,
-                  letterSpacing: 0.2)),
-          const Spacer(),
-          if (onRefresh != null)
-            GestureDetector(
-              onTap: onRefresh,
-              child:
-                  const Icon(Icons.refresh_rounded, size: 16, color: _kText3),
-            ),
         ],
       ),
     );
   }
+
+  // ─── STATS GRID ─────────────────────────────────────────────────────────
+  Widget _buildStatsGrid({
+    required double toReceive, required double toPay,
+    required double stock, required double monthSales, required String sym,
+  }) {
+    return Column(
+      children: [
+        Row(children: [
+          Expanded(
+            child: _StatCard(
+              label: 'To Receive', value: 'Rs.${_fmt(toReceive)}',
+              icon: Icons.south_west_rounded,
+              iconBg: const Color(0xFFFFF3E0), iconColor: const Color(0xFFE65100),
+              valueColor: const Color(0xFFE65100),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _StatCard(
+              label: 'To Pay', value: 'Rs.${_fmt(toPay)}',
+              icon: Icons.north_east_rounded,
+              iconBg: const Color(0xFFEDE7F6), iconColor: const Color(0xFF5E35B1),
+              valueColor: const Color(0xFF5E35B1),
+            ),
+          ),
+        ]),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(
+            child: _StatCard(
+              label: 'Month Sales', value: 'Rs.${_fmt(monthSales)}',
+              icon: Icons.bar_chart_rounded,
+              iconBg: const Color(0xFFE8F5E9), iconColor: const Color(0xFF2E7D32),
+              valueColor: const Color(0xFF2E7D32),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _StatCard(
+              label: 'Total Stock', value: '${stock.toStringAsFixed(1)} Kg',
+              icon: Icons.scale_rounded,
+              iconBg: const Color(0xFFE3F2FD), iconColor: AppTheme.primaryBlue,
+              valueColor: AppTheme.primaryBlue,
+            ),
+          ),
+        ]),
+      ],
+    );
+  }
+
+  // ─── QUICK ACTIONS ──────────────────────────────────────────────────────
+  Widget _buildQuickActions() {
+    final actions = [
+      _Action(icon: Icons.add_shopping_cart_rounded, label: 'New Bill',
+          color: AppTheme.primaryBlue, onTap: () => _go(const NewBillScreen())),
+      _Action(icon: Icons.shopping_bag_outlined, label: 'Purchase',
+          color: const Color(0xFF2E7D32), onTap: () => _go(const PurchaseScreen())),
+      _Action(icon: Icons.undo_outlined, label: 'Return',
+          color: const Color(0xFFE65100), onTap: () => _go(const SaleReturnScreen())),
+      _Action(icon: Icons.menu_book_outlined, label: 'Day Book',
+          color: const Color(0xFF6A1B9A), onTap: () => _go(const DayBookScreen())),
+      _Action(icon: Icons.groups_outlined, label: 'Parties',
+          color: const Color(0xFF00695C), onTap: () => _go(const PartiesScreen())),
+      _Action(icon: Icons.inventory_2_outlined, label: 'Items',
+          color: const Color(0xFF1565C0), onTap: () => context.read<ShellProvider>().setIndex(2)),
+      _Action(icon: Icons.assessment_outlined, label: 'Reports',
+          color: const Color(0xFFC62828), onTap: () => context.read<ShellProvider>().setIndex(3)),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Quick Actions', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 12),
+        _ActionGroupCard(children: actions.take(4).toList()),
+        const SizedBox(height: 10),
+        _ActionGroupCard(children: actions.skip(4).toList()),
+      ],
+    );
+  }
+
+  String _fmt(double v) => v >= 100000
+      ? '${(v / 100000).toStringAsFixed(1)}L'
+      : v >= 1000
+          ? '${(v / 1000).toStringAsFixed(1)}K'
+          : v.toStringAsFixed(0);
 }
 
-// â”€â”€ TODAY HERO CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+class _ActionGroupCard extends StatelessWidget {
+  final List<_Action> children;
+  const _ActionGroupCard({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFEEF2F7)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: children.map((a) => _ActionTile(action: a)).toList(),
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+//  TODAY HERO CARD
+// ──────────────────────────────────────────────────────────────────────────
 class _TodayHeroCard extends StatelessWidget {
   final double todaySales, todayPaid;
   final int todayCount;
   final String sym;
 
   const _TodayHeroCard({
-    required this.todaySales,
-    required this.todayPaid,
-    required this.todayCount,
-    required this.sym,
+    required this.todaySales, required this.todayPaid,
+    required this.todayCount, required this.sym,
   });
 
   @override
   Widget build(BuildContext context) {
     final pending = (todaySales - todayPaid).clamp(0.0, double.infinity);
-    final collectedPct =
-        todaySales > 0 ? (todayPaid / todaySales).clamp(0.0, 1.0) : 0.0;
 
     return Container(
+      margin: const EdgeInsets.fromLTRB(16, 14, 16, 12),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          colors: [AppTheme.primaryBlue, Color(0xFF1976D2)],
+          begin: Alignment.topLeft, end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF2563EB).withValues(alpha: 0.35),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
+          BoxShadow(color: AppTheme.primaryBlue.withOpacity(0.3), blurRadius: 18, offset: const Offset(0, 8)),
         ],
       ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -24,
-            top: -24,
-            child: Container(
-              width: 110,
-              height: 110,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Positioned(
-            right: 20,
-            bottom: -35,
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.04),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Label row
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.today_rounded,
-                              color: Colors.white70, size: 11),
-                          SizedBox(width: 5),
-                          Text("Today's Sales",
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        '$todayCount ${todayCount == 1 ? 'bill' : 'bills'}',
-                        style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 14),
-
-                Text(
-                  '$sym ${_fmt(todaySales)}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 30,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -1,
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Progress bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: collectedPct,
-                    backgroundColor: Colors.white.withValues(alpha: 0.15),
-                    valueColor:
-                        const AlwaysStoppedAnimation<Color>(Color(0xFF34D399)),
-                    minHeight: 5,
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
-                Row(
-                  children: [
-                    _HeroChip(
-                      label: 'Collected',
-                      value: '$sym ${_fmt(todayPaid)}',
-                      dotColor: const Color(0xFF34D399),
-                    ),
-                    const Spacer(),
-                    _HeroChip(
-                      label: 'Pending',
-                      value: '$sym ${_fmt(pending)}',
-                      dotColor: const Color(0xFFFBBF24),
-                      alignRight: true,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _fmt(double v) {
-    if (v >= 100000) return '${(v / 100000).toStringAsFixed(1)}L';
-    if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}K';
-    return v.toStringAsFixed(0);
-  }
-}
-
-class _HeroChip extends StatelessWidget {
-  final String label, value;
-  final Color dotColor;
-  final bool alignRight;
-
-  const _HeroChip({
-    required this.label,
-    required this.value,
-    required this.dotColor,
-    this.alignRight = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        if (!alignRight) ...[
-          Container(
-              width: 7,
-              height: 7,
-              decoration:
-                  BoxDecoration(color: dotColor, shape: BoxShape.circle)),
-          const SizedBox(width: 6),
-        ],
-        Column(
-          crossAxisAlignment:
-              alignRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: [
-            Text(label,
-                style: const TextStyle(color: Colors.white54, fontSize: 10)),
-            Text(value,
-                style: TextStyle(
-                    color: dotColor,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800)),
-          ],
-        ),
-        if (alignRight) ...[
-          const SizedBox(width: 6),
-          Container(
-              width: 7,
-              height: 7,
-              decoration:
-                  BoxDecoration(color: dotColor, shape: BoxShape.circle)),
-        ],
-      ],
-    );
-  }
-}
-
-// â”€â”€ MINI STAT CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-class _MiniStatCard extends StatelessWidget {
-  final String label, value;
-  final IconData icon;
-  final Color color, bgColor;
-
-  const _MiniStatCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-    required this.bgColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
-      decoration: BoxDecoration(
-        color: _kCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _kBorder, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(8),
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.18),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.wb_sunny_outlined, color: Colors.white, size: 12),
+                SizedBox(width: 4),
+                Text("Today's Overview",
+                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+              ]),
             ),
-            child: Icon(icon, color: color, size: 15),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-                fontSize: 13, fontWeight: FontWeight.w800, color: color),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 1),
-          Text(label,
+            const Spacer(),
+            Text('$todayCount bills', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+          ]),
+          const SizedBox(height: 16),
+          const Text('Total Sales', style: TextStyle(color: Colors.white70, fontSize: 12)),
+          const SizedBox(height: 4),
+          Text('Rs.${todaySales.toStringAsFixed(0)}',
               style: const TextStyle(
-                  fontSize: 9, color: _kText3, fontWeight: FontWeight.w500),
-              maxLines: 1),
+                  color: Colors.white, fontSize: 30, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+          const SizedBox(height: 18),
+          Row(children: [
+            Expanded(
+              child: _HeroStat(
+                  label: 'Collected', value: 'Rs.${todayPaid.toStringAsFixed(0)}',
+                  color: const Color(0xFF69F0AE)),
+            ),
+            Container(width: 1, height: 30, color: Colors.white.withOpacity(0.2)),
+            Expanded(
+              child: _HeroStat(
+                  label: 'Pending', value: 'Rs.${pending.toStringAsFixed(0)}',
+                  color: const Color(0xFFFFCC80), rightAlign: true),
+            ),
+          ]),
         ],
       ),
     );
   }
 }
 
-// â”€â”€ MONTH SUMMARY CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-class _MonthSummaryCard extends StatelessWidget {
+class _HeroStat extends StatelessWidget {
+  final String label, value;
+  final Color color;
+  final bool rightAlign;
+
+  const _HeroStat({
+    required this.label, required this.value, required this.color, this.rightAlign = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(left: rightAlign ? 16 : 0, right: rightAlign ? 0 : 16),
+      child: Column(
+        crossAxisAlignment: rightAlign ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white60, fontSize: 11)),
+          const SizedBox(height: 3),
+          Text(value, style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w800)),
+        ],
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+//  STAT CARD
+// ──────────────────────────────────────────────────────────────────────────
+class _StatCard extends StatelessWidget {
+  final String label, value;
+  final IconData icon;
+  final Color iconBg, iconColor, valueColor;
+
+  const _StatCard({
+    required this.label, required this.value, required this.icon,
+    required this.iconBg, required this.iconColor, required this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFEEF2F7)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Row(children: [
+        Container(
+          width: 40, height: 40,
+          decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(10)),
+          child: Icon(icon, color: iconColor, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+              const SizedBox(height: 3),
+              Text(value,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: valueColor),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+            ],
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+//  MONTH PROFIT CARD
+// ──────────────────────────────────────────────────────────────────────────
+class _MonthProfitCard extends StatelessWidget {
   final double monthSales, monthPurchase, monthExpense, profit;
   final String sym;
 
-  const _MonthSummaryCard({
-    required this.monthSales,
-    required this.monthPurchase,
-    required this.monthExpense,
-    required this.profit,
-    required this.sym,
+  const _MonthProfitCard({
+    required this.monthSales, required this.monthPurchase,
+    required this.monthExpense, required this.profit, required this.sym,
   });
-
-  String _fmtK(double v) => v >= 100000
-      ? '${(v / 100000).toStringAsFixed(1)}L'
-      : v >= 1000
-          ? '${(v / 1000).toStringAsFixed(1)}K'
-          : v.toStringAsFixed(0);
-
-  int _barFlex(double pct) => ((pct * 100).round()).clamp(1, 100);
 
   @override
   Widget build(BuildContext context) {
-    final isProfit = profit >= 0;
-    final total = monthSales + monthPurchase + monthExpense;
-    final salesPct = total > 0 ? monthSales / total : 0.0;
-    final purPct = total > 0 ? monthPurchase / total : 0.0;
-    final expPct = total > 0 ? monthExpense / total : 0.0;
+    final month = DateFormat('MMMM').format(DateTime.now());
+    final isPositive = profit >= 0;
 
     return Container(
       decoration: BoxDecoration(
-        color: _kCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _kBorder, width: 1),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFEEF2F7)),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2)),
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Row(
-            children: [
-              const Icon(Icons.insert_chart_outlined_rounded,
-                  size: 14, color: _kPrimary),
-              const SizedBox(width: 6),
-              const Text('Monthly Summary',
+          Row(children: [
+            const Icon(Icons.insights_rounded, size: 16, color: AppTheme.primaryBlue),
+            const SizedBox(width: 6),
+            Text('$month Summary', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: isPositive ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(
+                  isPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                  size: 12,
+                  color: isPositive ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  isPositive ? 'Profit' : 'Loss',
                   style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: _kText1)),
-              const Spacer(),
-              _ProfitBadge(isProfit: isProfit, profit: profit, sym: sym),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          // Stacked bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: Row(
-              children: [
-                if (salesPct > 0)
-                  Expanded(
-                    flex: _barFlex(salesPct),
-                    child: Container(height: 7, color: const Color(0xFF10B981)),
+                    fontSize: 11, fontWeight: FontWeight.w700,
+                    color: isPositive ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F),
                   ),
-                if (purPct > 0)
-                  Expanded(
-                    flex: _barFlex(purPct),
-                    child: Container(height: 7, color: const Color(0xFFF59E0B)),
-                  ),
-                if (expPct > 0)
-                  Expanded(
-                    flex: _barFlex(expPct),
-                    child: Container(height: 7, color: const Color(0xFFF87171)),
-                  ),
-                if (total == 0)
-                  Expanded(
-                    child: Container(height: 7, color: const Color(0xFFE5E7EB)),
-                  ),
-              ],
+                ),
+              ]),
             ),
-          ),
-
-          const SizedBox(height: 12),
-
-          Row(
-            children: [
-              _SummaryCell(
-                dot: const Color(0xFF10B981),
-                label: 'Sales',
-                value: '$sym ${_fmtK(monthSales)}',
-              ),
-              _vDivider(),
-              _SummaryCell(
-                dot: const Color(0xFFF59E0B),
-                label: 'Purchase',
-                value: '$sym ${_fmtK(monthPurchase)}',
-              ),
-              _vDivider(),
-              _SummaryCell(
-                dot: const Color(0xFFF87171),
-                label: 'Expense',
-                value: '$sym ${_fmtK(monthExpense)}',
-              ),
-              _vDivider(),
-              _SummaryCell(
-                dot: isProfit
-                    ? const Color(0xFF10B981)
-                    : const Color(0xFFEF4444),
-                label: 'Net',
-                value: '$sym ${_fmtK(profit.abs())}',
-                bold: true,
-                valueColor: isProfit
-                    ? const Color(0xFF059669)
-                    : const Color(0xFFDC2626),
-              ),
-            ],
-          ),
+          ]),
+          const SizedBox(height: 16),
+          Row(children: [
+            _ProfitCell(label: 'Sales', value: 'Rs.${_fmtK(monthSales)}', color: const Color(0xFF2E7D32)),
+            _divider(),
+            _ProfitCell(label: 'Purchase', value: 'Rs.${_fmtK(monthPurchase)}', color: const Color(0xFFE65100)),
+            _divider(),
+            _ProfitCell(label: 'Expense', value: 'Rs.${_fmtK(monthExpense)}', color: const Color(0xFFEF5350)),
+            _divider(),
+            _ProfitCell(
+                label: 'Net', value: 'Rs.${_fmtK(profit.abs())}',
+                color: isPositive ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F), bold: true),
+          ]),
         ],
       ),
     );
   }
 
-  Widget _vDivider() => Container(
-      width: 1,
-      height: 28,
-      margin: const EdgeInsets.symmetric(horizontal: 6),
-      color: _kBorder);
+  Widget _divider() => Container(
+      width: 1, height: 34, color: const Color(0xFFF1F5F9), margin: const EdgeInsets.symmetric(horizontal: 4));
+
+  String _fmtK(double v) => v >= 1000 ? '${(v / 1000).toStringAsFixed(1)}K' : v.toStringAsFixed(0);
 }
 
-class _ProfitBadge extends StatelessWidget {
-  final bool isProfit;
-  final double profit;
-  final String sym;
-
-  const _ProfitBadge(
-      {required this.isProfit, required this.profit, required this.sym});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isProfit ? const Color(0xFF059669) : const Color(0xFFDC2626);
-    final bg = isProfit ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2);
-    final icon =
-        isProfit ? Icons.trending_up_rounded : Icons.trending_down_rounded;
-    final label = isProfit ? 'Profit' : 'Loss';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration:
-          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 10, fontWeight: FontWeight.w700, color: color)),
-        ],
-      ),
-    );
-  }
-}
-
-class _SummaryCell extends StatelessWidget {
-  final Color dot;
+class _ProfitCell extends StatelessWidget {
   final String label, value;
+  final Color color;
   final bool bold;
-  final Color? valueColor;
 
-  const _SummaryCell({
-    required this.dot,
-    required this.label,
-    required this.value,
-    this.bold = false,
-    this.valueColor,
-  });
+  const _ProfitCell({required this.label, required this.value, required this.color, this.bold = false});
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                  width: 6,
-                  height: 6,
-                  decoration:
-                      BoxDecoration(color: dot, shape: BoxShape.circle)),
-              const SizedBox(width: 4),
-              Text(label, style: const TextStyle(fontSize: 9, color: _kText3)),
-            ],
-          ),
-          const SizedBox(height: 3),
+          Text(label, style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
+          const SizedBox(height: 5),
           Text(value,
               style: TextStyle(
-                fontSize: bold ? 11 : 10,
+                fontSize: bold ? 13 : 12,
                 fontWeight: bold ? FontWeight.w800 : FontWeight.w700,
-                color: valueColor ?? const Color(0xFF374151),
+                color: color,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
         ],
       ),
     );
   }
 }
 
-// â”€â”€ QUICK ACTION ROW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-class _QAction {
+// ──────────────────────────────────────────────────────────────────────────
+//  INFO BANNER
+// ──────────────────────────────────────────────────────────────────────────
+class _InfoBanner extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _InfoBanner({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE3F2FD),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFBBDEFB)),
+      ),
+      child: Row(children: [
+        Icon(icon, size: 16, color: AppTheme.primaryBlue),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(text,
+              style: const TextStyle(fontSize: 11.5, color: Color(0xFF0D47A1), fontWeight: FontWeight.w500)),
+        ),
+      ]),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+//  ACTION TILE
+// ──────────────────────────────────────────────────────────────────────────
+class _Action {
   final IconData icon;
   final String label;
-  final List<Color> gradient;
+  final Color color;
   final VoidCallback onTap;
-  const _QAction({
-    required this.icon,
-    required this.label,
-    required this.gradient,
-    required this.onTap,
-  });
+  const _Action({required this.icon, required this.label, required this.color, required this.onTap});
 }
 
-class _ActionRow extends StatelessWidget {
-  final List<_QAction> actions;
-  const _ActionRow({required this.actions});
+class _ActionTile extends StatelessWidget {
+  final _Action action;
+  const _ActionTile({required this.action});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: _kCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _kBorder, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
-      child: Row(
-        children: actions.map((a) {
-          return Expanded(
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  a.onTap();
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: a.gradient,
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: a.gradient.last.withValues(alpha: 0.30),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: Icon(a.icon, color: Colors.white, size: 21),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(a.label,
-                        style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: _kText2),
-                        textAlign: TextAlign.center),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-// â”€â”€ RECENT TRANSACTIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-class _RecentTransactions extends StatelessWidget {
-  final List<Map<String, dynamic>> txns;
-  final String sym;
-  final VoidCallback onViewAll;
-
-  const _RecentTransactions({
-    required this.txns,
-    required this.sym,
-    required this.onViewAll,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: _kCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _kBorder, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return GestureDetector(
+      onTap: action.onTap,
       child: Column(
         children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 8, 10),
-            child: Row(
-              children: [
-                const Icon(Icons.history_rounded, size: 14, color: _kText2),
-                const SizedBox(width: 6),
-                const Text('Recent Activity',
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: _kText1)),
-                const Spacer(),
-                TextButton(
-                  onPressed: onViewAll,
-                  style: TextButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    foregroundColor: _kRed,
-                  ),
-                  child: const Text('View All',
-                      style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: _kRed)),
-                ),
-              ],
+          Container(
+            width: 52, height: 52,
+            decoration: BoxDecoration(
+              color: action.color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: action.color.withOpacity(0.18)),
             ),
+            child: Icon(action.icon, color: action.color, size: 23),
           ),
-
-          const Divider(height: 1, color: _kBorder),
-
-          ...txns.asMap().entries.map((entry) {
-            final i = entry.key;
-            final t = entry.value;
-            final type = (t['type'] as String?) ?? (t['kind'] as String?) ?? '';
-            final name = (t['party_name'] as String?) ??
-                (t['description'] as String?) ??
-                (t['title'] as String?) ??
-                (t['subtitle'] as String?) ??
-                'â€”';
-            final amount = (t['amount'] as num?)?.toDouble() ?? 0;
-            final dateRaw = (t['date'] as String?) ?? (t['ts'] as String?);
-            String timeStr = '';
-            if (dateRaw != null) {
-              try {
-                final dt = DateTime.parse(dateRaw);
-                timeStr = DateFormat('h:mm a').format(dt);
-              } catch (_) {}
-            }
-
-            final cfg = _txnConfig(type);
-
-            return Column(
-              children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: cfg.bg,
-                          borderRadius: BorderRadius.circular(9),
-                        ),
-                        child: Icon(cfg.icon, color: cfg.color, size: 16),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(name,
-                                style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF1F2937)),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis),
-                            const SizedBox(height: 2),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: cfg.bg,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(cfg.label,
-                                      style: TextStyle(
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w700,
-                                          color: cfg.color)),
-                                ),
-                                if (timeStr.isNotEmpty) ...[
-                                  const SizedBox(width: 6),
-                                  Text(timeStr,
-                                      style: const TextStyle(
-                                          fontSize: 10, color: _kText3)),
-                                ],
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      Text(
-                        '${cfg.sign}$sym${_fmtAmt(amount)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: cfg.amtColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (i < txns.length - 1)
-                  const Divider(
-                      height: 1, indent: 58, color: Color(0xFFF9FAFB)),
-              ],
-            );
-          }),
-
-          const SizedBox(height: 4),
+          const SizedBox(height: 7),
+          Text(action.label,
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center),
         ],
       ),
     );
   }
-
-  _TxnConfig _txnConfig(String type) {
-    switch (type.toLowerCase()) {
-      case 'sale':
-      case 'invoice':
-        return const _TxnConfig(
-          icon: Icons.receipt_long_rounded,
-          color: Color(0xFF059669),
-          bg: Color(0xFFECFDF5),
-          label: 'Sale',
-          sign: '+',
-          amtColor: Color(0xFF059669),
-        );
-      case 'purchase':
-        return const _TxnConfig(
-          icon: Icons.local_shipping_outlined,
-          color: Color(0xFFF59E0B),
-          bg: Color(0xFFFFFBEB),
-          label: 'Purchase',
-          sign: '-',
-          amtColor: Color(0xFFD97706),
-        );
-      case 'expense':
-        return const _TxnConfig(
-          icon: Icons.money_off_rounded,
-          color: Color(0xFFEF4444),
-          bg: Color(0xFFFEF2F2),
-          label: 'Expense',
-          sign: '-',
-          amtColor: Color(0xFFDC2626),
-        );
-      case 'payment_in':
-        return const _TxnConfig(
-          icon: Icons.south_west_rounded,
-          color: Color(0xFF3B82F6),
-          bg: Color(0xFFEFF6FF),
-          label: 'Payment In',
-          sign: '+',
-          amtColor: Color(0xFF2563EB),
-        );
-      case 'payment_out':
-        return const _TxnConfig(
-          icon: Icons.north_east_rounded,
-          color: Color(0xFF8B5CF6),
-          bg: Color(0xFFF5F3FF),
-          label: 'Payment Out',
-          sign: '-',
-          amtColor: Color(0xFF7C3AED),
-        );
-      case 'sale_return':
-        return const _TxnConfig(
-          icon: Icons.assignment_return_outlined,
-          color: Color(0xFFF97316),
-          bg: Color(0xFFFFF7ED),
-          label: 'Return',
-          sign: '-',
-          amtColor: Color(0xFFEA580C),
-        );
-      default:
-        return _TxnConfig(
-          icon: Icons.swap_horiz_rounded,
-          color: const Color(0xFF6B7280),
-          bg: const Color(0xFFF9FAFB),
-          label: type,
-          sign: '',
-          amtColor: const Color(0xFF374151),
-        );
-    }
-  }
-
-  String _fmtAmt(double v) {
-    if (v >= 100000) return '${(v / 100000).toStringAsFixed(1)}L';
-    if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}K';
-    return v.toStringAsFixed(0);
-  }
 }
-
-class _TxnConfig {
-  final IconData icon;
-  final Color color, bg, amtColor;
-  final String label, sign;
-  const _TxnConfig({
-    required this.icon,
-    required this.color,
-    required this.bg,
-    required this.label,
-    required this.sign,
-    required this.amtColor,
-  });
-}
-
-

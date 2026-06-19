@@ -1,245 +1,168 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_utils.dart';
 import '../../database/database_helper.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/settings_provider.dart';
 
 class ItemsScreen extends StatefulWidget {
   const ItemsScreen({super.key});
+
   @override
   State<ItemsScreen> createState() => _ItemsScreenState();
 }
 
-class _ItemsScreenState extends State<ItemsScreen>
-    with SingleTickerProviderStateMixin {
+class _ItemsScreenState extends State<ItemsScreen> {
   final _search = TextEditingController();
-  late TabController _tabController;
-  String _categoryFilter = 'All';
   bool _saving = false;
-  bool _gridView = true;
-
-  static const _red  = Color(0xFFE31E24);
-  static const _navy = Color(0xFF1A237E);
-  static const _blue = Color(0xFF1565C0);
-
-  static const _cats = [
-    'All', 'Fresh Water Fish', 'Sea Water Fish',
-    'Prawn & Shrimp', 'Crab & Lobster',
-    'Squid & Octopus', 'Chicken', 'Mutton',
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: _cats.length, vsync: this);
-    _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
-        setState(() => _categoryFilter = _cats[_tabController.index]);
-      }
-    });
-  }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _search.dispose();
     super.dispose();
   }
 
-  // ── Edit stock ────────────────────────────────────────────────────────────
-  Future<void> _editStock(Map<String, dynamic> row) async {
-    final id    = row['id'] as int;
-    final stock = (row['stock'] as num?)?.toDouble() ?? 0;
-    final ctrl  = TextEditingController(text: stock.toStringAsFixed(2));
-
-    final ok = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: Container(
-          decoration: const BoxDecoration(color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Center(child: Container(width: 40, height: 4,
-                decoration: BoxDecoration(color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2)))),
-            const SizedBox(height: 16),
-            Row(children: [
-              Container(width: 40, height: 40,
-                decoration: BoxDecoration(color: Colors.teal.shade50,
-                    borderRadius: BorderRadius.circular(10)),
-                child: Icon(Icons.inventory_2_outlined, color: Colors.teal.shade700, size: 20)),
-              const SizedBox(width: 12),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Adjust Stock', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                Text(row['name'] as String? ?? '',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-              ]),
-            ]),
-            const SizedBox(height: 20),
-            TextField(
-              controller: ctrl, autofocus: true,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
-              decoration: InputDecoration(
-                labelText: 'Stock (${row['unit'] ?? 'Kg'})',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.teal, width: 2)))),
-            const SizedBox(height: 20),
-            SizedBox(width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () => Navigator.pop(ctx, true),
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.teal.shade600,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                icon: const Icon(Icons.save_outlined, size: 18),
-                label: const Text('Save Stock',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)))),
-          ]),
-        ),
-      ),
-    );
-
-    if (ok == true && mounted) {
-      final v = double.tryParse(ctrl.text) ?? stock;
-      await context.read<InventoryProvider>().setStock(id, v);
-    }
-    ctrl.dispose();
+  void _toast(String msg, {bool error = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: error ? const Color(0xFFD32F2F) : const Color(0xFF2E7D32),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ));
   }
 
-  // ── Add item ──────────────────────────────────────────────────────────────
-  Future<void> _addItem() async {
-    final nameCtrl         = TextEditingController();
-    final priceCtrl        = TextEditingController();
-    final purchasePriceCtrl = TextEditingController();
-    final stockCtrl        = TextEditingController(text: '0');
-    String category = AppConstants.fishCategories.first;
-    String unit     = 'Kg';
-
-    final ok = await showModalBottomSheet<bool>(
+  Future<void> _editStock(Map<String, dynamic> row) async {
+    final id = row['id'] as int;
+    final stock = (row['stock'] as num?)?.toDouble() ?? 0;
+    final ctrl = TextEditingController(text: stock.toStringAsFixed(2));
+    final ok = await showDialog<bool>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: StatefulBuilder(builder: (ctx, setLocal) {
-          return Container(
-            decoration: const BoxDecoration(color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
-            child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Center(child: Container(width: 40, height: 4,
-                  decoration: BoxDecoration(color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(2)))),
-              const SizedBox(height: 16),
-              Row(children: [
-                Container(width: 40, height: 40,
-                  decoration: BoxDecoration(color: Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(10)),
-                  child: Icon(Icons.add_box_outlined, color: Colors.green.shade700, size: 22)),
-                const SizedBox(width: 12),
-                const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Add New Item', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                  Text('Item will be saved to inventory',
-                      style: TextStyle(fontSize: 11, color: Colors.grey)),
-                ]),
-              ]),
-              const SizedBox(height: 20),
+      builder: (ctx) => AlertDialog(
+        title: Text('Stock · ${row['name']}'),
+        content: TextField(
+          controller: ctrl,
+          decoration: InputDecoration(labelText: 'Quantity (${row['unit'] ?? 'Kg'})'),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Save')),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      final v = double.tryParse(ctrl.text);
+      if (v == null || v < 0) {
+        _toast('Enter a valid stock quantity', error: true);
+        return;
+      }
+      try {
+        await context.read<InventoryProvider>().setStock(id, v);
+        _toast('Stock updated');
+      } catch (e) {
+        _toast('Could not update stock: $e', error: true);
+      }
+    }
+  }
 
-              // Name
-              TextField(controller: nameCtrl, autofocus: true,
-                textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(labelText: 'Item Name *',
-                  prefixIcon: const Icon(Icons.set_meal_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
-              const SizedBox(height: 12),
+  Future<void> _addItem() async {
+    final nameCtrl = TextEditingController();
+    final priceCtrl = TextEditingController();
+    final purchasePriceCtrl = TextEditingController();
+    final stockCtrl = TextEditingController(text: '0');
+    String category = AppConstants.fishCategories.first;
+    String unit = 'Kg';
 
-              // Category dropdown
-              DropdownButtonFormField<String>(
-                initialValue: category,
-                decoration: InputDecoration(labelText: 'Category',
-                  prefixIcon: const Icon(Icons.category_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
-                isExpanded: true,
-                items: AppConstants.fishCategories.map((c) =>
-                    DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis))).toList(),
-                onChanged: (v) => setLocal(() => category = v ?? category)),
-              const SizedBox(height: 12),
-
-              // Unit selector
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Unit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade700)),
-                const SizedBox(height: 8),
-                Wrap(spacing: 8, runSpacing: 6,
-                  children: AppConstants.fishUnits.map((u) {
-                    final sel = u == unit;
-                    return GestureDetector(
-                      onTap: () => setLocal(() => unit = u),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: sel ? _blue : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: sel ? _blue : Colors.grey.shade300)),
-                        child: Text(u, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
-                            color: sel ? Colors.white : Colors.grey.shade700))));
-                  }).toList()),
-              ]),
-              const SizedBox(height: 12),
-
-              // Sale rate
-              TextField(controller: priceCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-                decoration: InputDecoration(labelText: 'Sale Rate (₹) *',
-                  prefixIcon: const Icon(Icons.sell_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
-              const SizedBox(height: 12),
-
-              // Purchase rate
-              TextField(controller: purchasePriceCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-                decoration: InputDecoration(labelText: 'Purchase Rate (₹)',
-                  prefixIcon: const Icon(Icons.shopping_bag_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
-              const SizedBox(height: 12),
-
-              // Opening stock
-              TextField(controller: stockCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-                decoration: InputDecoration(labelText: 'Opening Stock ($unit)',
-                  prefixIcon: const Icon(Icons.inventory_2_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
-              const SizedBox(height: 20),
-
-              SizedBox(width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.green.shade600,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                  icon: const Icon(Icons.save_outlined, size: 18),
-                  label: const Text('Save Item',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)))),
-            ])),
-          );
-        }),
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Add New Item'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Item name *',
+                    border: OutlineInputBorder(),
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                  autofocus: true,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: category,
+                  decoration: const InputDecoration(
+                    labelText: 'Category',
+                    border: OutlineInputBorder(),
+                  ),
+                  isExpanded: true,
+                  items: AppConstants.fishCategories
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis)))
+                      .toList(),
+                  onChanged: (v) => setLocal(() => category = v ?? category),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: unit,
+                  decoration: const InputDecoration(
+                    labelText: 'Unit',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: AppConstants.fishUnits
+                      .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                      .toList(),
+                  onChanged: (v) => setLocal(() => unit = v ?? unit),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: priceCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Sale rate (₹) *',
+                    border: OutlineInputBorder(),
+                    prefixText: '₹ ',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: purchasePriceCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Purchase rate (₹)',
+                    border: OutlineInputBorder(),
+                    prefixText: '₹ ',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: stockCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Opening stock ($unit)',
+                    border: const OutlineInputBorder(),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Save Item')),
+          ],
+        ),
       ),
     );
 
@@ -247,229 +170,184 @@ class _ItemsScreenState extends State<ItemsScreen>
 
     final name = nameCtrl.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('⚠️ Enter item name')));
-      nameCtrl.dispose(); priceCtrl.dispose();
-      purchasePriceCtrl.dispose(); stockCtrl.dispose();
+      _toast('Enter item name', error: true);
       return;
     }
     final price = double.tryParse(priceCtrl.text.trim()) ?? 0;
     if (price <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('⚠️ Enter valid sale rate')));
-      nameCtrl.dispose(); priceCtrl.dispose();
-      purchasePriceCtrl.dispose(); stockCtrl.dispose();
+      _toast('Enter a valid sale rate', error: true);
       return;
     }
+    final purchasePrice = double.tryParse(purchasePriceCtrl.text.trim()) ?? 0;
+    final stk = double.tryParse(stockCtrl.text.trim()) ?? 0;
 
     setState(() => _saving = true);
+
     try {
       final now = DateTime.now().toIso8601String();
-      final id  = await DatabaseHelper.instance.insertItem({
-        'name'          : name,
-        'category'      : category,
-        'unit'          : unit,
-        'price'         : price,
-        'purchase_price': double.tryParse(purchasePriceCtrl.text.trim()) ?? 0,
-        'stock'         : double.tryParse(stockCtrl.text.trim()) ?? 0,
-        'min_stock'     : 0.0,
-        'is_active'     : 1,
-        'created_at'    : now,
-        'updated_at'    : now,
-      });
+      final itemData = {
+        'name': name,
+        'category': category,
+        'unit': unit,
+        'price': price,
+        'purchase_price': purchasePrice,
+        'stock': stk,
+        'min_stock': 0.0,
+        'is_active': 1,
+        'created_at': now,
+        'updated_at': now,
+      };
+
+      await DatabaseHelper.instance.insertItem(itemData);
+
       if (mounted) {
         await context.read<InventoryProvider>().loadItems();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('✅ "$name" added'),
-          backgroundColor: Colors.green.shade700,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
+        _toast('Item added: $name');
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Failed: $e'), backgroundColor: Colors.red));
-      }
+      debugPrint('insertItem error: $e');
+      if (mounted) _toast('Failed to save: $e', error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
-
-    nameCtrl.dispose(); priceCtrl.dispose();
-    purchasePriceCtrl.dispose(); stockCtrl.dispose();
   }
 
-  // ── Edit item ─────────────────────────────────────────────────────────────
   Future<void> _editItem(Map<String, dynamic> row) async {
-    final nameCtrl          = TextEditingController(text: row['name'] as String? ?? '');
-    final priceCtrl         = TextEditingController(
-        text: '${(row['price'] as num?)?.toDouble() ?? 0}');
-    final purchasePriceCtrl = TextEditingController(
-        text: '${(row['purchase_price'] as num?)?.toDouble() ?? 0}');
+    final nameCtrl = TextEditingController(text: row['name'] as String? ?? '');
+    final priceCtrl = TextEditingController(text: '${(row['price'] as num?)?.toDouble() ?? 0}');
+    final purchasePriceCtrl =
+        TextEditingController(text: '${(row['purchase_price'] as num?)?.toDouble() ?? 0}');
     String category = row['category'] as String? ?? AppConstants.fishCategories.first;
-    String unit     = row['unit']     as String? ?? 'Kg';
+    String unit = row['unit'] as String? ?? 'Kg';
 
     if (!AppConstants.fishCategories.contains(category)) {
       category = AppConstants.fishCategories.first;
     }
     if (!AppConstants.fishUnits.contains(unit)) unit = 'Kg';
 
-    final ok = await showModalBottomSheet<bool>(
+    final ok = await showDialog<bool>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: StatefulBuilder(builder: (ctx, setLocal) {
-          return Container(
-            decoration: const BoxDecoration(color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
-            child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Center(child: Container(width: 40, height: 4,
-                  decoration: BoxDecoration(color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(2)))),
-              const SizedBox(height: 16),
-              Row(children: [
-                Container(width: 40, height: 40,
-                  decoration: BoxDecoration(color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(Icons.edit_outlined, color: _blue, size: 20)),
-                const SizedBox(width: 12),
-                const Text('Edit Item',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-              ]),
-              const SizedBox(height: 20),
-
-              TextField(controller: nameCtrl,
-                textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(labelText: 'Item Name *',
-                  prefixIcon: const Icon(Icons.set_meal_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
-              const SizedBox(height: 12),
-
-              DropdownButtonFormField<String>(
-                initialValue: category,
-                decoration: InputDecoration(labelText: 'Category',
-                  prefixIcon: const Icon(Icons.category_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
-                isExpanded: true,
-                items: AppConstants.fishCategories.map((c) =>
-                    DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis))).toList(),
-                onChanged: (v) => setLocal(() => category = v ?? category)),
-              const SizedBox(height: 12),
-
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Unit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade700)),
-                const SizedBox(height: 8),
-                Wrap(spacing: 8, runSpacing: 6,
-                  children: AppConstants.fishUnits.map((u) {
-                    final sel = u == unit;
-                    return GestureDetector(
-                      onTap: () => setLocal(() => unit = u),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: sel ? _blue : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: sel ? _blue : Colors.grey.shade300)),
-                        child: Text(u, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
-                            color: sel ? Colors.white : Colors.grey.shade700))));
-                  }).toList()),
-              ]),
-              const SizedBox(height: 12),
-
-              TextField(controller: priceCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-                decoration: InputDecoration(labelText: 'Sale Rate (₹) *',
-                  prefixIcon: const Icon(Icons.sell_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
-              const SizedBox(height: 12),
-
-              TextField(controller: purchasePriceCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-                decoration: InputDecoration(labelText: 'Purchase Rate (₹)',
-                  prefixIcon: const Icon(Icons.shopping_bag_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
-              const SizedBox(height: 20),
-
-              SizedBox(width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _blue,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                  icon: const Icon(Icons.save_outlined, size: 18),
-                  label: const Text('Update Item',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)))),
-            ])),
-          );
-        }),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Edit Item'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration:
+                      const InputDecoration(labelText: 'Item name *', border: OutlineInputBorder()),
+                  textCapitalization: TextCapitalization.words,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: category,
+                  decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
+                  isExpanded: true,
+                  items: AppConstants.fishCategories
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis)))
+                      .toList(),
+                  onChanged: (v) => setLocal(() => category = v ?? category),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: unit,
+                  decoration: const InputDecoration(labelText: 'Unit', border: OutlineInputBorder()),
+                  items: AppConstants.fishUnits.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
+                  onChanged: (v) => setLocal(() => unit = v ?? unit),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: priceCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Sale rate (₹) *',
+                    border: OutlineInputBorder(),
+                    prefixText: '₹ ',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: purchasePriceCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Purchase rate (₹)',
+                    border: OutlineInputBorder(),
+                    prefixText: '₹ ',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Update')),
+          ],
+        ),
       ),
     );
 
-    nameCtrl.dispose(); priceCtrl.dispose(); purchasePriceCtrl.dispose();
-
     if (ok != true || !mounted) return;
-    final name  = nameCtrl.text.trim();
-    if (name.isEmpty) return;
+
+    final name = nameCtrl.text.trim();
+    if (name.isEmpty) {
+      _toast('Enter item name', error: true);
+      return;
+    }
     final price = double.tryParse(priceCtrl.text.trim()) ?? 0;
-    if (price <= 0) return;
+    if (price <= 0) {
+      _toast('Enter a valid sale rate', error: true);
+      return;
+    }
 
     try {
-      await DatabaseHelper.instance.updateItem(row['id'] as int, {
-        'name'          : name,
-        'category'      : category,
-        'unit'          : unit,
-        'price'         : price,
+      final updated = {
+        'name': name,
+        'category': category,
+        'unit': unit,
+        'price': price,
         'purchase_price': double.tryParse(purchasePriceCtrl.text.trim()) ?? 0,
-        'updated_at'    : DateTime.now().toIso8601String(),
-      });
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+      await DatabaseHelper.instance.updateItem(row['id'] as int, updated);
       if (mounted) {
         await context.read<InventoryProvider>().loadItems();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text('✅ Item updated'),
-          backgroundColor: Colors.green.shade700,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
+        _toast('Item updated');
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Update failed: $e'), backgroundColor: Colors.red));
-      }
+      debugPrint('updateItem error: $e');
+      if (mounted) _toast('Update failed: $e', error: true);
     }
   }
 
-  // ── Delete item ───────────────────────────────────────────────────────────
-  Future<void> _deleteItem(Map<String, dynamic> row) async {
+  Future<void> _confirmDelete(Map<String, dynamic> row) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Remove Item?',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-        content: Text('Remove "${row['name']}" from inventory?'),
+        title: const Text('Delete item?'),
+        content: Text('Remove "${row['name']}" from your item list? This cannot be undone.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Remove')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFD32F2F)),
+            child: const Text('Delete'),
+          ),
         ],
       ),
     );
-    if (ok != true || !mounted) return;
-    await context.read<InventoryProvider>().deactivateItem(row['id'] as int);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('"${row['name']}" removed'),
-      backgroundColor: Colors.red.shade700,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
+    if (ok == true && mounted) {
+      try {
+        await DatabaseHelper.instance.deleteItem(row['id'] as int);
+        await context.read<InventoryProvider>().loadItems();
+        _toast('Item deleted');
+      } catch (e) {
+        _toast('Could not delete: $e', error: true);
+      }
     }
   }
 
@@ -478,466 +356,249 @@ class _ItemsScreenState extends State<ItemsScreen>
     final sym = context.watch<SettingsProvider>().currencySymbol;
     final inv = context.watch<InventoryProvider>();
 
-    final query    = _search.text.toLowerCase();
-    final allItems = inv.items;
-    final filtered = allItems.where((e) {
-      final name = (e['name'] as String).toLowerCase();
-      final cat  = e['category'] as String? ?? '';
-      return (query.isEmpty || name.contains(query)) &&
-             (_categoryFilter == 'All' || cat == _categoryFilter);
-    }).toList();
-
-    final lowStockCount = allItems.where((e) =>
-        ((e['stock'] as num?)?.toDouble() ?? 0) <= 0).length;
+    final list = _search.text.isEmpty
+        ? inv.items
+        : inv.items
+            .where((e) => (e['name'] as String? ?? '').toLowerCase().contains(_search.text.toLowerCase()))
+            .toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F6FA),
-      appBar: AppBar(
-        backgroundColor: _navy,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: const Text('Items', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-        centerTitle: true,
-        actions: [
-          // Toggle grid/list
-          IconButton(
-            icon: Icon(_gridView ? Icons.view_list_rounded : Icons.grid_view_rounded),
-            onPressed: () => setState(() => _gridView = !_gridView)),
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => context.read<InventoryProvider>().loadItems()),
+      backgroundColor: const Color(0xFFF2F6FC),
+      body: Stack(
+        children: [
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: TextField(
+                  controller: _search,
+                  style: const TextStyle(fontSize: 13),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF94A3B8)),
+                    hintText: 'Search items…',
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                    focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppTheme.primaryBlue, width: 1.5)),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Text('${list.length} items',
+                        style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12, fontWeight: FontWeight.w600)),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: () => context.read<InventoryProvider>().loadItems(),
+                      icon: const Icon(Icons.refresh_rounded, size: 16),
+                      label: const Text('Refresh', style: TextStyle(fontSize: 12)),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: inv.loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : list.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.inventory_2_outlined, size: 60, color: Colors.grey.shade300),
+                                const SizedBox(height: 14),
+                                Text('No items yet',
+                                    style: TextStyle(color: Colors.grey.shade600, fontSize: 15, fontWeight: FontWeight.w600)),
+                                const SizedBox(height: 6),
+                                Text('Add your first fish or item to get started',
+                                    style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+                                const SizedBox(height: 18),
+                                FilledButton.icon(
+                                  onPressed: _addItem,
+                                  icon: const Icon(Icons.add, size: 18),
+                                  label: const Text('Add first item'),
+                                ),
+                              ],
+                            ),
+                          )
+                        : RefreshIndicator(
+                            color: AppTheme.primaryBlue,
+                            onRefresh: () => context.read<InventoryProvider>().loadItems(),
+                            child: ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
+                              itemCount: list.length,
+                              itemBuilder: (context, i) {
+                                final row = list[i];
+                                final name = row['name'] as String? ?? 'Item';
+                                final price = (row['price'] as num?)?.toDouble() ?? 0;
+                                final purchasePrice = (row['purchase_price'] as num?)?.toDouble() ?? 0;
+                                final stock = (row['stock'] as num?)?.toDouble() ?? 0;
+                                final unit = row['unit'] as String? ?? 'Kg';
+                                final outOfStock = stock <= 0;
+
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFEEF2F7)),
+                                  ),
+                                  child: InkWell(
+                                    onTap: () => _editStock(row),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(13),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Container(
+                                                width: 36, height: 36,
+                                                decoration: BoxDecoration(
+                                                  color: AppTheme.primaryBlue.withOpacity(0.08),
+                                                  borderRadius: BorderRadius.circular(9),
+                                                ),
+                                                child: const Icon(Icons.set_meal_rounded,
+                                                    size: 18, color: AppTheme.primaryBlue),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Expanded(
+                                                child: Text(
+                                                  name,
+                                                  style: const TextStyle(
+                                                      fontSize: 14, fontWeight: FontWeight.w700),
+                                                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                              PopupMenuButton<String>(
+                                                icon: const Icon(Icons.more_vert_rounded, size: 20, color: Color(0xFF94A3B8)),
+                                                padding: EdgeInsets.zero,
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                onSelected: (v) {
+                                                  if (v == 'stock') _editStock(row);
+                                                  if (v == 'edit') _editItem(row);
+                                                  if (v == 'delete') _confirmDelete(row);
+                                                },
+                                                itemBuilder: (_) => const [
+                                                  PopupMenuItem(
+                                                    value: 'stock',
+                                                    child: Row(children: [
+                                                      Icon(Icons.scale_outlined, size: 18),
+                                                      SizedBox(width: 10), Text('Adjust stock'),
+                                                    ]),
+                                                  ),
+                                                  PopupMenuItem(
+                                                    value: 'edit',
+                                                    child: Row(children: [
+                                                      Icon(Icons.edit_outlined, size: 18),
+                                                      SizedBox(width: 10), Text('Edit item'),
+                                                    ]),
+                                                  ),
+                                                  PopupMenuItem(
+                                                    value: 'delete',
+                                                    child: Row(children: [
+                                                      Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFD32F2F)),
+                                                      SizedBox(width: 10),
+                                                      Text('Delete', style: TextStyle(color: Color(0xFFD32F2F))),
+                                                    ]),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: _ItemStat(
+                                                  label: 'Sale Price',
+                                                  value: AppUtils.formatCurrency(price, symbol: sym),
+                                                ),
+                                              ),
+                                              Expanded(
+                                                child: _ItemStat(
+                                                  label: 'Purchase Price',
+                                                  value: AppUtils.formatCurrency(purchasePrice, symbol: sym),
+                                                ),
+                                              ),
+                                              Expanded(
+                                                child: _ItemStat(
+                                                  label: 'In Stock',
+                                                  value: '${stock.toStringAsFixed(1)} $unit',
+                                                  valueColor: outOfStock
+                                                      ? const Color(0xFFD32F2F)
+                                                      : const Color(0xFF2E7D32),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+              ),
+            ],
+          ),
+          Positioned(
+            bottom: 16, left: 16, right: 16,
+            child: FilledButton.icon(
+              onPressed: _saving ? null : _addItem,
+              icon: _saving
+                  ? const SizedBox(
+                      width: 18, height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.add_box_outlined, size: 19),
+              label: Text(_saving ? 'Saving…' : 'Add Item'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue,
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                elevation: 3,
+                shadowColor: AppTheme.primaryBlue.withOpacity(0.4),
+              ),
+            ),
+          ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(44),
-          child: TabBar(
-            controller: _tabController,
-            isScrollable: true,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white54,
-            indicatorColor: _red,
-            indicatorWeight: 3,
-            labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-            tabAlignment: TabAlignment.start,
-            tabs: _cats.map((c) => Tab(text: c)).toList()),
-        ),
-      ),
-
-      body: Column(children: [
-        // ── Stats + Search strip ────────────────────────────────────────
-        Container(
-          color: Colors.white,
-          padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-          child: Row(children: [
-            // Total items box
-            _StatBox(label: 'Total Items', value: '${allItems.length}',
-                color: _blue, icon: Icons.inventory_2_outlined),
-            const SizedBox(width: 8),
-            // Low stock box
-            _StatBox(label: 'Out of Stock', value: '$lowStockCount',
-                color: lowStockCount > 0 ? _red : Colors.green.shade700,
-                icon: Icons.warning_amber_rounded),
-            const SizedBox(width: 8),
-            // Filtered count
-            _StatBox(label: 'Showing', value: '${filtered.length}',
-                color: Colors.grey.shade600, icon: Icons.filter_list_rounded),
-          ]),
-        ),
-
-        // Search
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
-          child: TextField(
-            controller: _search,
-            style: const TextStyle(fontSize: 13),
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Colors.grey),
-              hintText: 'Search items…',
-              hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-              filled: true, fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Colors.grey.shade200)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Colors.grey.shade200)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: _blue, width: 1.5)),
-              suffixIcon: _search.text.isNotEmpty
-                  ? IconButton(icon: const Icon(Icons.clear_rounded, size: 16),
-                      onPressed: () { _search.clear(); setState(() {}); })
-                  : null),
-            onChanged: (_) => setState(() {})),
-        ),
-
-        // ── Item list/grid ──────────────────────────────────────────────
-        Expanded(
-          child: inv.loading
-              ? const Center(child: CircularProgressIndicator())
-              : filtered.isEmpty
-                  ? _EmptyItems(onAdd: _addItem)
-                  : RefreshIndicator(
-                      color: _red,
-                      onRefresh: () => context.read<InventoryProvider>().loadItems(),
-                      child: _gridView
-                          ? _buildGrid(filtered, sym)
-                          : _buildList(filtered, sym)),
-        ),
-      ]),
-
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _saving ? null : _addItem,
-        backgroundColor: _red,
-        icon: _saving
-            ? const SizedBox(width: 18, height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-            : const Icon(Icons.add_box_outlined, color: Colors.white),
-        label: Text(_saving ? 'Saving…' : 'Add Item',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-    );
-  }
-
-  // ── GRID VIEW ──────────────────────────────────────────────────────────────
-  Widget _buildGrid(List<Map<String, dynamic>> items, String sym) {
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 100),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 0.88),
-      itemCount: items.length,
-      itemBuilder: (_, i) => _ItemGridCard(
-        row: items[i], sym: sym,
-        onStock: () => _editStock(items[i]),
-        onEdit: () => _editItem(items[i]),
-        onDelete: () => _deleteItem(items[i])));
-  }
-
-  // ── LIST VIEW ──────────────────────────────────────────────────────────────
-  Widget _buildList(List<Map<String, dynamic>> items, String sym) {
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(14, 4, 14, 100),
-      itemCount: items.length,
-      itemBuilder: (_, i) => _ItemListCard(
-        row: items[i], sym: sym,
-        onStock: () => _editStock(items[i]),
-        onEdit: () => _editItem(items[i]),
-        onDelete: () => _deleteItem(items[i])));
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  STAT BOX
-// ─────────────────────────────────────────────────────────────────────────────
-class _StatBox extends StatelessWidget {
-  final String label, value;
-  final Color color;
-  final IconData icon;
-  const _StatBox({required this.label, required this.value,
-      required this.color, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.07),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withValues(alpha: 0.2))),
-        child: Row(children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 6),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: TextStyle(fontSize: 9, color: color, fontWeight: FontWeight.w600)),
-            Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: color)),
-          ])),
-        ]),
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  ITEM GRID CARD — Vyapar style
-// ─────────────────────────────────────────────────────────────────────────────
-class _ItemGridCard extends StatelessWidget {
-  final Map<String, dynamic> row;
-  final String sym;
-  final VoidCallback onStock, onEdit, onDelete;
-
-  static const _red  = Color(0xFFE31E24);
-  static const _blue = Color(0xFF1565C0);
-
-  const _ItemGridCard({required this.row, required this.sym,
-      required this.onStock, required this.onEdit, required this.onDelete});
+class _ItemStat extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color? valueColor;
+  const _ItemStat({required this.label, required this.value, this.valueColor});
 
   @override
   Widget build(BuildContext context) {
-    final name          = row['name'] as String? ?? '';
-    final price         = (row['price'] as num?)?.toDouble() ?? 0;
-    final purchasePrice = (row['purchase_price'] as num?)?.toDouble() ?? 0;
-    final stock         = (row['stock'] as num?)?.toDouble() ?? 0;
-    final unit          = row['unit'] as String? ?? 'Kg';
-    final cat           = row['category'] as String? ?? '';
-    final outOfStock    = stock <= 0;
-    final profit        = price - purchasePrice;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: outOfStock ? Colors.red.shade100 : Colors.grey.shade100),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 4, offset: const Offset(0, 2))]),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onStock,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // Top row — emoji + menu
-              Row(children: [
-                Text(_catEmoji(cat), style: const TextStyle(fontSize: 22)),
-                const Spacer(),
-                // Stock badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: outOfStock ? Colors.red.shade50 : Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(4)),
-                  child: Text(outOfStock ? '0 $unit' : '${stock.toStringAsFixed(1)} $unit',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
-                          color: outOfStock ? _red : Colors.green.shade700))),
-              ]),
-              const SizedBox(height: 8),
-
-              // Item name
-              Text(name, maxLines: 2, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
-                      color: Colors.black87)),
-              const SizedBox(height: 2),
-              if (cat.isNotEmpty)
-                Text(cat, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
-
-              const Spacer(),
-
-              // Prices
-              Row(children: [
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Sale', style: TextStyle(fontSize: 9, color: Colors.grey.shade500)),
-                  Text('$sym${price.toStringAsFixed(0)}',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800,
-                          color: Colors.black87)),
-                ])),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Profit', style: TextStyle(fontSize: 9, color: Colors.grey.shade500)),
-                  Text('$sym${profit.toStringAsFixed(0)}',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800,
-                          color: profit > 0 ? Colors.green.shade700 : Colors.grey.shade400)),
-                ])),
-              ]),
-
-              const SizedBox(height: 8),
-              // Action row
-              Row(children: [
-                Expanded(child: GestureDetector(
-                  onTap: onStock,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.teal.shade50, borderRadius: BorderRadius.circular(6)),
-                    child: const Center(child: Text('Stock',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
-                            color: Colors.teal)))))),
-                const SizedBox(width: 6),
-                Expanded(child: GestureDetector(
-                  onTap: onEdit,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50, borderRadius: BorderRadius.circular(6)),
-                    child: const Center(child: Text('Edit',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
-                            color: Color(0xFF1565C0))))))),
-                const SizedBox(width: 6),
-                GestureDetector(
-                  onTap: onDelete,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50, borderRadius: BorderRadius.circular(6)),
-                    child: const Icon(Icons.delete_outline_rounded, size: 16, color: _red))),
-              ]),
-            ]),
-          ),
-        ),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8))),
+        const SizedBox(height: 4),
+        Text(value,
+            style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w700,
+                color: valueColor ?? const Color(0xFF1E293B))),
+      ],
     );
-  }
-
-  String _catEmoji(String cat) {
-    if (cat.contains('Fresh')) return '🐟';
-    if (cat.contains('Sea'))   return '🐠';
-    if (cat.contains('Prawn')) return '🦐';
-    if (cat.contains('Crab'))  return '🦀';
-    if (cat.contains('Squid')) return '🦑';
-    if (cat.contains('Chick')) return '🍗';
-    if (cat.contains('Mutt'))  return '🥩';
-    return '🐟';
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  ITEM LIST CARD — Vyapar style
-// ─────────────────────────────────────────────────────────────────────────────
-class _ItemListCard extends StatelessWidget {
-  final Map<String, dynamic> row;
-  final String sym;
-  final VoidCallback onStock, onEdit, onDelete;
-
-  static const _red  = Color(0xFFE31E24);
-  static const _blue = Color(0xFF1565C0);
-
-  const _ItemListCard({required this.row, required this.sym,
-      required this.onStock, required this.onEdit, required this.onDelete});
-
-  @override
-  Widget build(BuildContext context) {
-    final name          = row['name'] as String? ?? '';
-    final price         = (row['price'] as num?)?.toDouble() ?? 0;
-    final purchasePrice = (row['purchase_price'] as num?)?.toDouble() ?? 0;
-    final stock         = (row['stock'] as num?)?.toDouble() ?? 0;
-    final unit          = row['unit'] as String? ?? 'Kg';
-    final cat           = row['category'] as String? ?? '';
-    final outOfStock    = stock <= 0;
-    final profit        = price - purchasePrice;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: outOfStock ? Colors.red.shade100 : Colors.grey.shade100),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 4, offset: const Offset(0, 2))]),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
-        child: Row(children: [
-          // Emoji
-          Text(_catEmoji(cat), style: const TextStyle(fontSize: 26)),
-          const SizedBox(width: 12),
-
-          // Info
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 3),
-            Row(children: [
-              // Sale price
-              Text('$sym${price.toStringAsFixed(0)}',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
-                      color: Colors.black87)),
-              Text(' / $unit', style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
-              const SizedBox(width: 10),
-              // Profit
-              if (profit > 0) ...[
-                Icon(Icons.trending_up_rounded, size: 12, color: Colors.green.shade600),
-                Text(' $sym${profit.toStringAsFixed(0)}',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
-                        color: Colors.green.shade600)),
-              ],
-            ]),
-          ])),
-
-          // Stock badge
-          GestureDetector(
-            onTap: onStock,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-              decoration: BoxDecoration(
-                color: outOfStock ? Colors.red.shade50 : Colors.teal.shade50,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: outOfStock
-                    ? Colors.red.shade200 : Colors.teal.shade200)),
-              child: Column(children: [
-                Text(outOfStock ? 'Empty' : stock.toStringAsFixed(1),
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800,
-                        color: outOfStock ? _red : Colors.teal.shade700)),
-                Text(unit, style: TextStyle(fontSize: 9,
-                    color: outOfStock ? _red : Colors.teal.shade600)),
-              ])),
-          ),
-          const SizedBox(width: 6),
-
-          // Actions
-          Column(children: [
-            GestureDetector(
-              onTap: onEdit,
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(6)),
-                child: const Icon(Icons.edit_outlined, size: 15, color: _blue))),
-            const SizedBox(height: 4),
-            GestureDetector(
-              onTap: onDelete,
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(6)),
-                child: const Icon(Icons.delete_outline_rounded, size: 15, color: _red))),
-          ]),
-        ]),
-      ),
-    );
-  }
-
-  String _catEmoji(String cat) {
-    if (cat.contains('Fresh')) return '🐟';
-    if (cat.contains('Sea'))   return '🐠';
-    if (cat.contains('Prawn')) return '🦐';
-    if (cat.contains('Crab'))  return '🦀';
-    if (cat.contains('Squid')) return '🦑';
-    if (cat.contains('Chick')) return '🍗';
-    if (cat.contains('Mutt'))  return '🥩';
-    return '🐟';
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  EMPTY STATE
-// ─────────────────────────────────────────────────────────────────────────────
-class _EmptyItems extends StatelessWidget {
-  final VoidCallback onAdd;
-  static const _red = Color(0xFFE31E24);
-  const _EmptyItems({required this.onAdd});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Container(width: 72, height: 72,
-        decoration: const BoxDecoration(color: Color(0xFFFDE8E8), shape: BoxShape.circle),
-        child: const Center(child: Text('🐟', style: TextStyle(fontSize: 36)))),
-      const SizedBox(height: 16),
-      const Text('No items yet',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-      const SizedBox(height: 6),
-      Text('Add fish and other items to your inventory',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
-      const SizedBox(height: 20),
-      FilledButton.icon(
-        onPressed: onAdd,
-        icon: const Icon(Icons.add_box_outlined, size: 16),
-        label: const Text('Add Item', style: TextStyle(fontSize: 13)),
-        style: FilledButton.styleFrom(
-          backgroundColor: _red,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)))),
-    ]));
   }
 }
