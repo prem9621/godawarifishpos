@@ -85,7 +85,7 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: primaryBlue.withOpacity(0.13),
+        indicatorColor: primaryBlue.withValues(alpha: 0.13),
         elevation: 0,
         height: 64,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
@@ -109,12 +109,12 @@ class AppTheme {
       // Cards
       cardTheme: CardThemeData(
         elevation: 0,
-        shadowColor: Colors.black.withOpacity(0.06),
+        shadowColor: Colors.black.withValues(alpha: 0.06),
         surfaceTintColor: Colors.transparent,
         color: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusMd),
-          side: BorderSide(color: const Color(0xFFE2E8F0), width: 1),
+          side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
         ),
         clipBehavior: Clip.antiAlias,
         margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
@@ -225,7 +225,7 @@ class AppTheme {
         ),
         side: const BorderSide(color: Color(0xFFE2E8F0)),
         elevation: 0,
-        selectedColor: primaryBlue.withOpacity(0.12),
+        selectedColor: primaryBlue.withValues(alpha: 0.12),
       ),
 
       // Divider
@@ -260,7 +260,7 @@ class AppTheme {
           fontSize: 13, color: const Color(0xFF475569), height: 1.5,
         ),
         elevation: 8,
-        shadowColor: Colors.black.withOpacity(0.1),
+        shadowColor: Colors.black.withValues(alpha: 0.1),
       ),
 
       // SnackBar
@@ -296,7 +296,7 @@ class AppTheme {
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           return states.contains(WidgetState.selected)
-              ? primaryBlue.withOpacity(0.35)
+              ? primaryBlue.withValues(alpha: 0.35)
               : const Color(0xFFCBD5E1);
         }),
       ),
@@ -354,7 +354,7 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: darkAppBar,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: const Color(0xFF90CAF9).withOpacity(0.18),
+        indicatorColor: const Color(0xFF90CAF9).withValues(alpha: 0.18),
         height: 64,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);

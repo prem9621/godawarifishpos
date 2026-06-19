@@ -15,9 +15,16 @@ class InventoryProvider extends ChangeNotifier {
   Future<void> loadItems({String? search, String? category}) async {
     _loading = true;
     notifyListeners();
-    _items = await _db.getItems(search: search, category: category);
-    _loading = false;
-    notifyListeners();
+    try {
+      _items = await _db.getItems(search: search, category: category);
+    } catch (e) {
+      // ✅ FIX: a failed query used to leave _loading stuck true forever.
+      debugPrint('❌ loadItems error: $e');
+      _items = [];
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
   }
 
   // Called from items_screen after direct DB insert

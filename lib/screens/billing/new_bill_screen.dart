@@ -1068,9 +1068,9 @@ class _ToggleSection extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         decoration: BoxDecoration(
-          color: isOn ? color.withOpacity(0.07) : Colors.white,
+          color: isOn ? color.withValues(alpha: 0.07) : Colors.white,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: isOn ? color.withOpacity(0.35) : const Color(0xFFE2E8F0)),
+          border: Border.all(color: isOn ? color.withValues(alpha: 0.35) : const Color(0xFFE2E8F0)),
         ),
         child: Row(children: [
           Icon(icon, size: 16, color: color),
@@ -1317,15 +1317,15 @@ class _ShopHeader extends StatelessWidget {
           child: const Icon(Icons.set_meal_rounded, color: Colors.white, size: 24),
         ),
         const SizedBox(width: 12),
-        Expanded(
+        const Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('GODAWARI FISH',
+            Text('GODAWARI FISH',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 0.4)),
-            const SizedBox(height: 2),
+            SizedBox(height: 2),
             Text('Fish Market Central Naka, MH-20',
-                style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
-            const Text('Ph: 9371306189', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+            Text('Ph: 9371306189', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
           ]),
         ),
         const SizedBox(width: 8),
@@ -1489,7 +1489,7 @@ class _BillSummaryBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 14, offset: const Offset(0, -3)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 14, offset: const Offset(0, -3)),
         ],
       ),
       child: SafeArea(

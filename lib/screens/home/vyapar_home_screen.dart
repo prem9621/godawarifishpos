@@ -231,7 +231,7 @@ class _VyaparHomeScreenState extends State<VyaparHomeScreen>
             Container(
               width: 34, height: 34,
               decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.18), borderRadius: BorderRadius.circular(9)),
+                  color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(9)),
               child: const Icon(Icons.set_meal_rounded, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 9),
@@ -376,7 +376,7 @@ class _VyaparHomeScreenState extends State<VyaparHomeScreen>
       child: Column(children: [
         Container(
           width: 72, height: 72,
-          decoration: BoxDecoration(color: const Color(0xFFE3F2FD), shape: BoxShape.circle),
+          decoration: const BoxDecoration(color: Color(0xFFE3F2FD), shape: BoxShape.circle),
           child: const Icon(Icons.receipt_long_outlined, size: 36, color: AppTheme.primaryBlue),
         ),
         const SizedBox(height: 16),
@@ -435,7 +435,7 @@ class _VyaparHomeScreenState extends State<VyaparHomeScreen>
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: const Color(0xFFEEF2F7)),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3)),
           ],
         ),
         child: Row(
@@ -468,7 +468,7 @@ class _VyaparHomeScreenState extends State<VyaparHomeScreen>
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFEEF2F7)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6, offset: const Offset(0, 3)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 6, offset: const Offset(0, 3)),
         ],
       ),
       child: Material(
@@ -484,7 +484,7 @@ class _VyaparHomeScreenState extends State<VyaparHomeScreen>
                 Row(children: [
                   CircleAvatar(
                     radius: 18,
-                    backgroundColor: (isPaid ? const Color(0xFF2E7D32) : AppTheme.primaryBlue).withOpacity(0.1),
+                    backgroundColor: (isPaid ? const Color(0xFF2E7D32) : AppTheme.primaryBlue).withValues(alpha: 0.1),
                     child: Text(
                       name.substring(0, 1).toUpperCase(),
                       style: TextStyle(
@@ -648,7 +648,7 @@ class _VyaparHomeScreenState extends State<VyaparHomeScreen>
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFEEF2F7)),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6, offset: const Offset(0, 2)),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 6, offset: const Offset(0, 2)),
                     ],
                   ),
                   child: InkWell(
@@ -663,7 +663,7 @@ class _VyaparHomeScreenState extends State<VyaparHomeScreen>
                       child: Row(children: [
                         CircleAvatar(
                           radius: 18,
-                          backgroundColor: color.withOpacity(0.12),
+                          backgroundColor: color.withValues(alpha: 0.12),
                           child: Text(initial,
                               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color)),
                         ),
@@ -679,7 +679,7 @@ class _VyaparHomeScreenState extends State<VyaparHomeScreen>
                               Row(children: [
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(4)),
+                                  decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(4)),
                                   child: Text(isSupplier ? 'Supplier' : 'Customer',
                                       style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
                                 ),
@@ -734,7 +734,7 @@ class _StatPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-      decoration: BoxDecoration(color: Colors.white.withOpacity(0.14), borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(10)),
       child: Row(children: [
         Icon(icon, color: color, size: 16),
         const SizedBox(width: 7),
@@ -774,9 +774,9 @@ class _QuickLinkTile extends StatelessWidget {
         Container(
           width: 50, height: 50,
           decoration: BoxDecoration(
-            color: link.color.withOpacity(0.1),
+            color: link.color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(13),
-            border: Border.all(color: link.color.withOpacity(0.18)),
+            border: Border.all(color: link.color.withValues(alpha: 0.18)),
           ),
           child: Icon(link.icon, color: link.color, size: 22),
         ),
@@ -844,9 +844,9 @@ class _PartySummaryPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.07),
+        color: color.withValues(alpha: 0.07),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.18)),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
       ),
       child: Row(children: [
         Icon(icon, color: color, size: 18),

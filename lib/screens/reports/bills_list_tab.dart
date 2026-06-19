@@ -35,16 +35,26 @@ class _BillsListTabState extends State<BillsListTab> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final list = await _db.getInvoices(
-      search: _search.text.trim().isEmpty ? null : _search.text.trim(),
-      from: _from,
-      to: DateTime.now(),
-    );
-    if (mounted) {
-      setState(() {
-        _rows = list;
-        _loading = false;
-      });
+    try {
+      final list = await _db.getInvoices(
+        search: _search.text.trim().isEmpty ? null : _search.text.trim(),
+        from: _from,
+        to: DateTime.now(),
+      );
+      if (mounted) {
+        setState(() {
+          _rows = list;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      // ✅ FIX: a failed query used to leave the spinner running forever.
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -118,7 +128,8 @@ class _BillsListTabState extends State<BillsListTab> {
                         itemCount: _rows.length,
                         itemBuilder: (context, i) {
                           final r = _rows[i];
-                          final id = r['id'] as int;
+                          final id = r['id'] as int?;
+                          if (id == null) return const SizedBox.shrink();
                           final no = r['invoice_no'] as String? ?? '';
                           final name = r['customer_name'] as String? ?? '';
                           final total = (r['total'] as num?)?.toDouble() ?? 0;

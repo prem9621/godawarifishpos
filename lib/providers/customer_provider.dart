@@ -16,10 +16,17 @@ class CustomerProvider extends ChangeNotifier {
   Future<void> loadCustomers({String? search, String? partyType}) async {
     _loading = true;
     notifyListeners();
-    final rows = await _db.getCustomers(search: search, partyType: partyType);
-    _customers = rows.map(CustomerModel.fromMap).toList();
-    _loading = false;
-    notifyListeners();
+    try {
+      final rows = await _db.getCustomers(search: search, partyType: partyType);
+      _customers = rows.map(CustomerModel.fromMap).toList();
+    } catch (e) {
+      // ✅ FIX: a failed query used to leave _loading stuck true forever.
+      debugPrint('❌ loadCustomers error: $e');
+      _customers = [];
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
   }
 
   Future<String?> addCustomer(Map<String, dynamic> data) async {

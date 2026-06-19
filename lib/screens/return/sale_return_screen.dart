@@ -143,7 +143,7 @@ class _SaleReturnScreenState extends State<SaleReturnScreen> {
                             shape       : BoxShape.circle),
                         child: Center(
                           child: Text(
-                            c.name.substring(0, 1).toUpperCase(),
+                            c.name.isNotEmpty ? c.name.substring(0, 1).toUpperCase() : '?',
                             style: const TextStyle(
                                 fontSize  : 14,
                                 fontWeight: FontWeight.w800,
@@ -333,7 +333,9 @@ class _SaleReturnScreenState extends State<SaleReturnScreen> {
                     child: Center(
                       child: _customer != null
                           ? Text(
-                              _customer!.name.substring(0, 1).toUpperCase(),
+                              _customer!.name.isNotEmpty
+                                  ? _customer!.name.substring(0, 1).toUpperCase()
+                                  : '?',
                               style: const TextStyle(
                                   fontSize  : 14,
                                   fontWeight: FontWeight.w800,

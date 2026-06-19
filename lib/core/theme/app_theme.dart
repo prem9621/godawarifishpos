@@ -329,3 +329,86 @@ class AppColorTheme {
   final Color  accent;
   const AppColorTheme(this.name, this.primary, this.accent);
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+//  APP COLORS — the slate/gray palette used in the clean-SaaS reference design.
+//  Use these instead of scattered Colors.grey.shadeXXX so every screen pulls
+//  from one source.
+// ────────────────────────────────────────────────────────────────────────────
+class AppColors {
+  AppColors._();
+
+  // Slate scale (matches the Bhakriwala-style reference look)
+  static const Color slate900 = Color(0xFF1A1F2E); // primary text
+  static const Color slate700 = Color(0xFF334155); // secondary text (dark)
+  static const Color slate500 = Color(0xFF64748B); // secondary text
+  static const Color slate400 = Color(0xFF94A3B8); // tertiary / muted text
+  static const Color slate300 = Color(0xFFCBD5E1); // disabled / icons
+  static const Color slate200 = Color(0xFFE2E8F0); // borders, dividers
+  static const Color slate100 = Color(0xFFF1F5F9); // subtle fills
+  static const Color slate50  = Color(0xFFF8FAFC); // page background
+
+  static const Color border   = slate200;
+  static const Color divider  = slate100;
+  static const Color surface  = Colors.white;
+  static const Color bg       = slate50;
+
+  static const Color textPrimary   = slate900;
+  static const Color textSecondary = slate500;
+  static const Color textMuted     = slate400;
+
+  static const Color success = Color(0xFF2E7D32);
+  static const Color danger  = Color(0xFFD32F2F);
+  static const Color warning = Color(0xFFE65100);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+//  APP TEXT — a tight, consistent type scale. Pick the smallest style that
+//  fits the role instead of guessing an inline fontSize. All screens should
+//  use these instead of ad-hoc `TextStyle(fontSize: 11/12/13/14...)`.
+//
+//  Scale (compact, phone-optimized):
+//   caption   10px  — timestamps, helper text under inputs
+//   label     11px  — field labels, chip text, table headers
+//   body      12px  — default body / list subtitle text
+//   bodyLg    13px  — primary list-tile title text
+//   subtitle  14px  — card section headers, emphasized rows
+//   title     16px  — screen/section titles
+//   heading   18px  — app bar titles, big numbers
+//   display   22px  — hero numbers (today's sales, totals)
+// ────────────────────────────────────────────────────────────────────────────
+class AppText {
+  AppText._();
+
+  static TextStyle get caption => GoogleFonts.poppins(
+      fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.textMuted);
+
+  static TextStyle get label => GoogleFonts.poppins(
+      fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary);
+
+  static TextStyle get body => GoogleFonts.poppins(
+      fontSize: 12, fontWeight: FontWeight.w400, color: AppColors.textPrimary);
+
+  static TextStyle get bodyMuted => GoogleFonts.poppins(
+      fontSize: 12, fontWeight: FontWeight.w400, color: AppColors.textSecondary);
+
+  static TextStyle get bodyLg => GoogleFonts.poppins(
+      fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimary);
+
+  static TextStyle get subtitle => GoogleFonts.poppins(
+      fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary);
+
+  static TextStyle get title => GoogleFonts.poppins(
+      fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary);
+
+  static TextStyle get heading => GoogleFonts.poppins(
+      fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary);
+
+  static TextStyle get display => GoogleFonts.poppins(
+      fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary);
+
+  /// Helper for the common "value with a colored accent" pattern
+  /// (totals, balances, stat-card numbers) without retyping fontWeight/size.
+  static TextStyle valueOf(Color color, {double size = 14}) => GoogleFonts.poppins(
+      fontSize: size, fontWeight: FontWeight.w800, color: color);
+}

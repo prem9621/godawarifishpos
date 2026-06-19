@@ -79,19 +79,17 @@ class _PartiesScreenState extends State<PartiesScreen>
 
   Future<void> _loadLastTxnDates() async {
     final storeId = context.read<SettingsProvider>().currentStoreId;
-    final rows = await DatabaseHelper.instance.getCustomers();
-    for (final row in rows) {
-      final id = row['id'] as int?;
-      if (id == null) continue;
-      final db = await DatabaseHelper.instance.database;
-      final res = await db.rawQuery(
-        'SELECT MAX(created_at) AS last FROM invoices WHERE customer_id = ? AND store_id = ?',
-        [id, storeId],
-      );
-      final raw = res.isNotEmpty ? res.first['last'] as String? : null;
-      final dt = raw != null ? DateTime.tryParse(raw) : null;
-      if (mounted) setState(() => _lastTxnDate[id] = dt);
-    }
+    // ✅ FIX: was one DB query per party (N+1). Now a single grouped query.
+    final lastDates = await DatabaseHelper.instance
+        .getLastTransactionDatesForCustomers(storeId: storeId);
+    if (!mounted) return;
+    setState(() {
+      _lastTxnDate
+        ..clear()
+        ..addEntries(lastDates.entries.map(
+          (e) => MapEntry(e.key, e.value != null ? DateTime.tryParse(e.value!) : null),
+        ));
+    });
   }
 
   Future<void> _deleteParty(CustomerModel party) async {

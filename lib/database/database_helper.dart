@@ -774,6 +774,32 @@ class DatabaseHelper {
     );
   }
 
+  /// ✅ FIX: single grouped query instead of one query per party (N+1 bug).
+  /// Returns a map of customer_id -> last invoice date (ISO string), for all
+  /// customers in the given store in one round trip.
+  Future<Map<int, String?>> getLastTransactionDatesForCustomers({
+    int? storeId,
+  }) async {
+    final db = await database;
+    final effectiveStoreId = await _effectiveStoreId(storeId);
+    final rows = await db.rawQuery(
+      '''
+      SELECT customer_id, MAX(created_at) AS last
+      FROM invoices
+      WHERE store_id = ? AND customer_id IS NOT NULL
+      GROUP BY customer_id
+      ''',
+      [effectiveStoreId],
+    );
+    final result = <int, String?>{};
+    for (final row in rows) {
+      final id = row['customer_id'] as int?;
+      if (id == null) continue;
+      result[id] = row['last'] as String?;
+    }
+    return result;
+  }
+
   Future<Map<String, dynamic>?> getCustomerById(int id) async {
     final db = await database;
     final rows = await db.query(

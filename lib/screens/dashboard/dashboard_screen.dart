@@ -47,8 +47,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         'month_expense': monthExpense,
       };
     } catch (e) {
+      // ✅ FIX: previously swallowed the error and returned {}, which meant
+      // the FutureBuilder's hasError branch (with retry button) never fired —
+      // the user just saw a blank/zeroed-out dashboard with no indication
+      // anything went wrong. Rethrowing lets the existing error UI work.
       debugPrint('Dashboard load error: $e');
-      return {};
+      rethrow;
     }
   }
 
@@ -301,7 +305,7 @@ class _ActionGroupCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFEEF2F7)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
         ],
       ),
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
@@ -339,7 +343,7 @@ class _TodayHeroCard extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
-          BoxShadow(color: AppTheme.primaryBlue.withOpacity(0.3), blurRadius: 18, offset: const Offset(0, 8)),
+          BoxShadow(color: AppTheme.primaryBlue.withValues(alpha: 0.3), blurRadius: 18, offset: const Offset(0, 8)),
         ],
       ),
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
@@ -350,7 +354,7 @@ class _TodayHeroCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.18),
+                color: Colors.white.withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Row(mainAxisSize: MainAxisSize.min, children: [
@@ -376,7 +380,7 @@ class _TodayHeroCard extends StatelessWidget {
                   label: 'Collected', value: 'Rs.${todayPaid.toStringAsFixed(0)}',
                   color: const Color(0xFF69F0AE)),
             ),
-            Container(width: 1, height: 30, color: Colors.white.withOpacity(0.2)),
+            Container(width: 1, height: 30, color: Colors.white.withValues(alpha: 0.2)),
             Expanded(
               child: _HeroStat(
                   label: 'Pending', value: 'Rs.${pending.toStringAsFixed(0)}',
@@ -436,7 +440,7 @@ class _StatCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFEEF2F7)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
         ],
       ),
       child: Row(children: [
@@ -486,7 +490,7 @@ class _MonthProfitCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFEEF2F7)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
         ],
       ),
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
@@ -625,9 +629,9 @@ class _ActionTile extends StatelessWidget {
           Container(
             width: 52, height: 52,
             decoration: BoxDecoration(
-              color: action.color.withOpacity(0.1),
+              color: action.color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: action.color.withOpacity(0.18)),
+              border: Border.all(color: action.color.withValues(alpha: 0.18)),
             ),
             child: Icon(action.icon, color: action.color, size: 23),
           ),

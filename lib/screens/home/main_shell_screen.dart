@@ -150,7 +150,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
       padding: const EdgeInsets.only(bottom: 4),
       child: Material(
         elevation: 6,
-        shadowColor: AppTheme.vyaparRed.withOpacity(0.4),
+        shadowColor: AppTheme.vyaparRed.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(28),
         color: AppTheme.vyaparRed,
         child: InkWell(
@@ -301,15 +301,15 @@ class _DrawerItem extends StatelessWidget {
   final bool selected;
 
   const _DrawerItem({
-    required this.icon, required this.label, required this.onTap, this.selected = false,
-  });
+    required this.icon, required this.label, required this.onTap,
+  }) : selected = false;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Material(
-        color: selected ? AppTheme.primaryBlue.withOpacity(0.08) : Colors.transparent,
+        color: selected ? AppTheme.primaryBlue.withValues(alpha: 0.08) : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),

@@ -154,25 +154,35 @@ class _SummaryTabState extends State<_SummaryTab> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final db      = DatabaseHelper.instance;
-    final results = await Future.wait([
-      db.getDashboardStats(),
-      db.getMonthPurchaseTotal(),
-      db.getMonthExpenseTotal(),
-      db.getTotalStockQuantity(),
-      db.getSumBalanceForPartyType('customer'),
-      db.getSumBalanceForPartyType('supplier'),
-    ]);
-    if (!mounted) return;
-    setState(() {
-      _dash          = results[0] as Map<String, double>;
-      _purchaseMonth = results[1] as double;
-      _expenseMonth  = results[2] as double;
-      _stockQty      = results[3] as double;
-      _toReceive     = results[4] as double;
-      _toPay         = results[5] as double;
-      _loading       = false;
-    });
+    try {
+      final db      = DatabaseHelper.instance;
+      final results = await Future.wait([
+        db.getDashboardStats(),
+        db.getMonthPurchaseTotal(),
+        db.getMonthExpenseTotal(),
+        db.getTotalStockQuantity(),
+        db.getSumBalanceForPartyType('customer'),
+        db.getSumBalanceForPartyType('supplier'),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _dash          = results[0] as Map<String, double>;
+        _purchaseMonth = results[1] as double;
+        _expenseMonth  = results[2] as double;
+        _stockQty      = results[3] as double;
+        _toReceive     = results[4] as double;
+        _toPay         = results[5] as double;
+        _loading       = false;
+      });
+    } catch (e) {
+      // ✅ FIX: a failed query used to leave the spinner running forever.
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   @override
@@ -376,9 +386,9 @@ class _BillsTab extends StatefulWidget {
 class _BillsTabState extends State<_BillsTab> {
   bool _loading    = true;
   List<Map<String, dynamic>> _invoices = [];
-  String _statusFilter = 'All';
-  DateTime _from = DateTime.now().subtract(const Duration(days: 30));
-  DateTime _to   = DateTime.now();
+  final String _statusFilter = 'All';
+  final DateTime _from = DateTime.now().subtract(const Duration(days: 30));
+  final DateTime _to   = DateTime.now();
   final _search  = TextEditingController();
 
   @override
@@ -395,14 +405,25 @@ class _BillsTabState extends State<_BillsTab> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final rows = await DatabaseHelper.instance.getInvoices(
-      from  : _from,
-      to    : _to,
-      search: _search.text.trim().isEmpty ? null : _search.text.trim(),
-      status: _statusFilter == 'All' ? null : _statusFilter.toLowerCase(),
-    );
-    if (!mounted) return;
-    setState(() { _invoices = rows; _loading = false; });
+    try {
+      final rows = await DatabaseHelper.instance.getInvoices(
+        from  : _from,
+        to    : _to,
+        search: _search.text.trim().isEmpty ? null : _search.text.trim(),
+        status: _statusFilter == 'All' ? null : _statusFilter.toLowerCase(),
+      );
+      if (!mounted) return;
+      setState(() { _invoices = rows; _loading = false; });
+    } catch (e) {
+      // ✅ FIX: a failed query used to leave the spinner running forever.
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
   }
 
   Future<void> _pickDate(bool isFrom) async {
@@ -725,10 +746,20 @@ class _ExpensesTabState extends State<_ExpensesTab> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final rows = await DatabaseHelper.instance
-        .getExpenses(from: _from, to: _to);
-    if (!mounted) return;
-    setState(() { _expenses = rows; _loading = false; });
+    try {
+      final rows = await DatabaseHelper.instance
+          .getExpenses(from: _from, to: _to);
+      if (!mounted) return;
+      setState(() { _expenses = rows; _loading = false; });
+    } catch (e) {
+      // ✅ FIX: a failed query used to leave the spinner running forever.
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Future<void> _pickDate(bool isFrom) async {
@@ -1131,21 +1162,31 @@ class _ProfitTabState extends State<_ProfitTab> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final db      = DatabaseHelper.instance;
-    final results = await Future.wait([
-      db.getSalesReport(_from, _to),
-      db.getTopItems(_from, _to),
-      db.getMonthPurchaseTotal(),
-      db.getMonthExpenseTotal(),
-    ]);
-    if (!mounted) return;
-    setState(() {
-      _salesReport   = results[0] as List<Map<String, dynamic>>;
-      _topItems      = results[1] as List<Map<String, dynamic>>;
-      _purchaseMonth = results[2] as double;
-      _expenseMonth  = results[3] as double;
-      _loading       = false;
-    });
+    try {
+      final db      = DatabaseHelper.instance;
+      final results = await Future.wait([
+        db.getSalesReport(_from, _to),
+        db.getTopItems(_from, _to),
+        db.getMonthPurchaseTotal(),
+        db.getMonthExpenseTotal(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _salesReport   = results[0] as List<Map<String, dynamic>>;
+        _topItems      = results[1] as List<Map<String, dynamic>>;
+        _purchaseMonth = results[2] as double;
+        _expenseMonth  = results[3] as double;
+        _loading       = false;
+      });
+    } catch (e) {
+      // ✅ FIX: a failed query used to leave the spinner running forever.
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Future<void> _pickDate(bool isFrom) async {
