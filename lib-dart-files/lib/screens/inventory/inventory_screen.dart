@@ -664,27 +664,11 @@ class _InventoryScreenState extends State<InventoryScreen>
                 ),
                 onPressed: () async {
                   final val = double.tryParse(ctrl.text.trim());
-                  if (val == null || val < 0) {
-                    // ✅ FIX: previously this silently did nothing on bad
-                    // input — same bug class fixed in items_screen.dart.
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Enter a valid stock quantity'),
-                        backgroundColor: Colors.red));
-                    return;
-                  }
-                  if (fish.id == null) return;
-                  try {
-                    await context
-                        .read<InventoryProvider>()
-                        .setStock(fish.id!, val);
-                    if (context.mounted) Navigator.pop(context);
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text('Failed to update stock: $e'),
-                          backgroundColor: Colors.red));
-                    }
-                  }
+                  if (val == null || fish.id == null) return;
+                  await context
+                      .read<InventoryProvider>()
+                      .setStock(fish.id!, val);
+                  if (context.mounted) Navigator.pop(context);
                 },
                 child: const Text('Update Stock',
                     style:

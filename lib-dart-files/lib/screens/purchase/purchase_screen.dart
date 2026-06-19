@@ -215,7 +215,7 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
                     ...list.map((c) => ListTile(
                           leading: CircleAvatar(
                             backgroundColor: Colors.orange.shade100,
-                            child: Text(c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
+                            child: Text(c.name[0].toUpperCase(),
                                 style: TextStyle(
                                     color: Colors.orange.shade700,
                                     fontWeight: FontWeight.bold)),

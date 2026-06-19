@@ -7,7 +7,7 @@ import '../../core/constants/app_constants.dart';
 import '../../providers/settings_provider.dart';
 import 'delivery_boys_screen.dart';
 import 'invoice_print_settings_screen.dart';
-import 'store_management_screen.dart';
+import 'store_management_screen.DART';
 import 'user_management_screen.dart';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────

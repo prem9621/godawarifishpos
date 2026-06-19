@@ -28,26 +28,16 @@ class _ProfitReportTabState extends State<ProfitReportTab> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    try {
-      final dash = await _db.getDashboardStats();
-      final p = await _db.getMonthPurchaseTotal();
-      final e = await _db.getMonthExpenseTotal();
-      if (mounted) {
-        setState(() {
-          _sales = (dash['month_total'] as num?)?.toDouble() ?? 0;
-          _purchases = p;
-          _expenses = e;
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      // ✅ FIX: a failed query used to leave the spinner running forever.
-      if (mounted) {
-        setState(() => _loading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load: $e'), backgroundColor: Colors.red),
-        );
-      }
+    final dash = await _db.getDashboardStats();
+    final p = await _db.getMonthPurchaseTotal();
+    final e = await _db.getMonthExpenseTotal();
+    if (mounted) {
+      setState(() {
+        _sales = (dash['month_total'] as num?)?.toDouble() ?? 0;
+        _purchases = p;
+        _expenses = e;
+        _loading = false;
+      });
     }
   }
 

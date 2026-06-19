@@ -617,23 +617,13 @@ class _PartyDetailScreenState extends State<PartyDetailScreen> {
       ),
     );
     if (ok != true || !mounted) return;
-    try {
-      await _db.deletePartyPayment(paymentId: id, customerId: widget.customerId);
-      if (!mounted) return;
-      await context.read<CustomerProvider>().loadCustomers();
-      await _load();
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Payment deleted')));
-      }
-    } catch (e) {
-      // ✅ FIX: a failed delete (e.g. payment already removed) used to
-      // throw unhandled and crash this screen with no feedback.
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Could not delete payment: $e'),
-            backgroundColor: Colors.red));
-      }
+    await _db.deletePartyPayment(paymentId: id, customerId: widget.customerId);
+    if (!mounted) return;
+    await context.read<CustomerProvider>().loadCustomers();
+    await _load();
+    if (mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Payment deleted')));
     }
   }
 

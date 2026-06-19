@@ -27,7 +27,6 @@ class _LoginScreenState extends State<LoginScreen>
   bool _loading = true;
   bool _pinError = false;
   String _errorMsg = '';
-  String? _loadError;
 
   late AnimationController _shakeCtrl;
   late Animation<double> _shakeAnim;
@@ -53,10 +52,7 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _loadData() async {
-    setState(() {
-      _loading = true;
-      _loadError = null;
-    });
+    setState(() => _loading = true);
     try {
       try {
         await FirebaseSyncService.instance.pullUsersAndStores();
@@ -75,14 +71,7 @@ class _LoginScreenState extends State<LoginScreen>
         }
       }
     } catch (e) {
-      // ✅ FIX: a failed load used to leave a blank screen with no stores,
-      // no users, and no way to recover — now it shows a retry option.
-      if (mounted) {
-        setState(() {
-          _loading = false;
-          _loadError = '$e';
-        });
-      }
+      setState(() => _loading = false);
     }
   }
 
@@ -139,25 +128,11 @@ class _LoginScreenState extends State<LoginScreen>
       });
       return;
     }
-    final Map<String, dynamic>? user;
-    try {
-      user = await DatabaseHelper.instance.loginWithPin(
-        _pin,
-        storeId: storeId,
-        userId: userId,
-      );
-    } catch (e) {
-      // ✅ FIX: a DB error here used to throw and crash the login screen
-      // with no feedback — now it just shows as a wrong-PIN-style error.
-      if (!mounted) return;
-      await _shakeCtrl.forward(from: 0);
-      setState(() {
-        _pin = '';
-        _pinError = true;
-        _errorMsg = 'Login failed: $e';
-      });
-      return;
-    }
+    final user = await DatabaseHelper.instance.loginWithPin(
+      _pin,
+      storeId: storeId,
+      userId: userId,
+    );
 
     if (user == null) {
       // Wrong PIN — shake
@@ -197,80 +172,6 @@ class _LoginScreenState extends State<LoginScreen>
         backgroundColor: Color(0xFF0D47A1),
         body: Center(
           child: CircularProgressIndicator(color: Colors.white),
-        ),
-      );
-    }
-
-    if (_loadError != null) {
-      return Scaffold(
-        backgroundColor: const Color(0xFF0D47A1),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.wifi_off_rounded, color: Colors.white, size: 48),
-                const SizedBox(height: 16),
-                const Text('Could not load stores/users',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700)),
-                const SizedBox(height: 8),
-                Text(_loadError!,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12)),
-                const SizedBox(height: 20),
-                FilledButton.icon(
-                  onPressed: _loadData,
-                  icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('Retry'),
-                  style: FilledButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: AppTheme.primaryBlue),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (_stores.isEmpty) {
-      // ✅ FIX: previously this fell through to the full numpad UI with
-      // "No Store" / "No User" labels and an unusable PIN pad.
-      return Scaffold(
-        backgroundColor: const Color(0xFF0D47A1),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.store_outlined, color: Colors.white, size: 48),
-                const SizedBox(height: 16),
-                const Text('No store set up yet',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700)),
-                const SizedBox(height: 8),
-                Text('Set up a store first to start using the app.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13)),
-                const SizedBox(height: 20),
-                FilledButton.icon(
-                  onPressed: _loadData,
-                  icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('Refresh'),
-                  style: FilledButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: AppTheme.primaryBlue),
-                ),
-              ],
-            ),
-          ),
         ),
       );
     }

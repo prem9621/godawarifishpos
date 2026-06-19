@@ -97,25 +97,16 @@ class _ExpensesTabState extends State<ExpensesTab> {
       );
       return;
     }
-    try {
-      await _db.insertExpense({
-        'title': title,
-        'amount': amt,
-        'category': category,
-        'notes': noteCtrl.text.trim().isEmpty ? null : noteCtrl.text.trim(),
-        'created_at': DateTime.now().toIso8601String(),
-      });
-      await _load();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Expense saved')));
-      }
-    } catch (e) {
-      // ✅ FIX: a failed insert used to throw unhandled with no feedback.
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save: $e'), backgroundColor: Colors.red),
-        );
-      }
+    await _db.insertExpense({
+      'title': title,
+      'amount': amt,
+      'category': category,
+      'notes': noteCtrl.text.trim().isEmpty ? null : noteCtrl.text.trim(),
+      'created_at': DateTime.now().toIso8601String(),
+    });
+    await _load();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Expense saved')));
     }
   }
 

@@ -13,14 +13,6 @@ class _DeliveryBoysScreenState extends State<DeliveryBoysScreen> {
   List<Map<String, dynamic>> _boys = [];
   bool _loading = true;
 
-  // ✅ FIX: rows from the DB shouldn't be force-cast with `as int`/`as String`
-  // — a null or unexpected type here used to throw and crash the whole list.
-  int? _asInt(Object? v) => v is int ? v : int.tryParse(v?.toString() ?? '');
-  String _asText(Object? v, [String fallback = '']) {
-    final t = v?.toString().trim() ?? '';
-    return t.isEmpty ? fallback : t;
-  }
-
   @override
   void initState() {
     super.initState();
@@ -29,23 +21,12 @@ class _DeliveryBoysScreenState extends State<DeliveryBoysScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    try {
-      final result = await DatabaseHelper.instance.getDeliveryBoys();
-      if (mounted) {
-        setState(() {
-          _boys = result;
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      // ✅ FIX: previously a failed query left the spinner running forever
-      // with no way out for the user.
-      if (mounted) {
-        setState(() => _loading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Failed to load: $e'),
-            backgroundColor: Colors.red));
-      }
+    final result = await DatabaseHelper.instance.getDeliveryBoys();
+    if (mounted) {
+      setState(() {
+      _boys = result;
+      _loading = false;
+    });
     }
   }
 
@@ -116,23 +97,8 @@ class _DeliveryBoysScreenState extends State<DeliveryBoysScreen> {
       ),
     );
     if (ok == true) {
-      try {
-        await DatabaseHelper.instance.deleteDeliveryBoy(id);
-        await _load();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('"$name" removed'),
-              backgroundColor: Colors.red.shade700));
-        }
-      } catch (e) {
-        // ✅ FIX: deletion could fail (e.g. delivery boy linked to past
-        // bills) — used to throw silently with no feedback to the user.
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('Could not delete: $e'),
-              backgroundColor: Colors.red));
-        }
-      }
+      await DatabaseHelper.instance.deleteDeliveryBoy(id);
+      await _load();
     }
   }
 
@@ -190,8 +156,8 @@ class _DeliveryBoysScreenState extends State<DeliveryBoysScreen> {
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (_, i) {
                     final b = _boys[i];
-                    final name = _asText(b['name'], 'Delivery boy');
-                    final id = _asInt(b['id']);
+                    final name = b['name'] as String;
+                    final id = b['id'] as int;
                     return Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -209,7 +175,7 @@ class _DeliveryBoysScreenState extends State<DeliveryBoysScreen> {
                         leading: CircleAvatar(
                           backgroundColor: Colors.teal.withValues(alpha: 0.12),
                           child: Text(
-                            name.isNotEmpty ? name[0].toUpperCase() : '?',
+                            name[0].toUpperCase(),
                             style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: Colors.teal),
@@ -221,7 +187,7 @@ class _DeliveryBoysScreenState extends State<DeliveryBoysScreen> {
                         trailing: IconButton(
                           icon: const Icon(Icons.delete_outline_rounded,
                               color: Colors.red, size: 20),
-                          onPressed: id == null ? null : () => _delete(id, name),
+                          onPressed: () => _delete(id, name),
                         ),
                       ),
                     );

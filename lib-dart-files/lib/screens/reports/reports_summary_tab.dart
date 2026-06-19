@@ -27,27 +27,17 @@ class _ReportsSummaryTabState extends State<ReportsSummaryTab> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    try {
-      final to = DateTime.now();
-      final from = to.subtract(const Duration(days: 7));
-      final monthStart = DateTime(to.year, to.month, 1);
-      final daily = await _db.getSalesReport(from, to);
-      final top = await _db.getTopItems(monthStart, to);
-      if (mounted) {
-        setState(() {
-          _daily = daily;
-          _topItems = top;
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      // ✅ FIX: a failed query used to leave the spinner running forever.
-      if (mounted) {
-        setState(() => _loading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load: $e'), backgroundColor: Colors.red),
-        );
-      }
+    final to = DateTime.now();
+    final from = to.subtract(const Duration(days: 7));
+    final monthStart = DateTime(to.year, to.month, 1);
+    final daily = await _db.getSalesReport(from, to);
+    final top = await _db.getTopItems(monthStart, to);
+    if (mounted) {
+      setState(() {
+        _daily = daily;
+        _topItems = top;
+        _loading = false;
+      });
     }
   }
 
